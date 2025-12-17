@@ -581,7 +581,8 @@ Private Function GetNamedRange(ByVal ws As Worksheet, ByVal rangeName As String)
     End If
 End Function
 
-' Copies the first alarm entry for the given shift into the report sheet.
+' Copies all alarm entries for the given shift into the report sheet, stacking them
+' under the existing named ranges without requiring additional named cells.
 Private Sub CopyAlarmValues(ByVal wsData As Worksheet, ByVal wsReport As Worksheet, _
                             ByVal shiftCol As Long)
     Dim startCol As Long, endCol As Long
@@ -600,11 +601,47 @@ Private Sub CopyAlarmValues(ByVal wsData As Worksheet, ByVal wsReport As Workshe
     Dim lastRow As Long
     lastRow = wsData.Cells(wsData.Rows.Count, startCol).End(xlUp).Row
 
+    Dim colIndex As Long
+    Dim header As String
+    Dim rangeName As String
+    Dim targetRange As Range
+
+    Dim headerCount As Long
+    Dim headers() As String
+    Dim sourceCols() As Long
+    Dim targetRanges() As Range
+
+    For colIndex = startCol To endCol
+        header = Trim$(wsData.Cells(1, colIndex).Value)
+
+        If header <> "" Then
+            rangeName = ToRangeName(header)
+
+            If rangeName <> "" Then
+                Set targetRange = GetNamedRange(wsReport, rangeName)
+
+                If Not targetRange Is Nothing Then
+                    headerCount = headerCount + 1
+                    ReDim Preserve headers(1 To headerCount)
+                    ReDim Preserve sourceCols(1 To headerCount)
+                    ReDim Preserve targetRanges(1 To headerCount)
+
+                    headers(headerCount) = header
+                    sourceCols(headerCount) = colIndex
+                    Set targetRanges(headerCount) = targetRange
+                End If
+            End If
+        End If
+    Next colIndex
+
+    If headerCount = 0 Then Exit Sub
+
+    Dim entryCount As Long
+    Dim dataRows() As Long
     Dim rowIndex As Long
+
     For rowIndex = 2 To lastRow
         Dim hasData As Boolean
-        Dim colIndex As Long
-
         For colIndex = startCol To endCol
             If Trim$(wsData.Cells(rowIndex, colIndex).Value) <> "" Then
                 hasData = True
@@ -613,28 +650,43 @@ Private Sub CopyAlarmValues(ByVal wsData As Worksheet, ByVal wsReport As Workshe
         Next colIndex
 
         If hasData Then
-            For colIndex = startCol To endCol
-                Dim header As String
-                header = Trim$(wsData.Cells(1, colIndex).Value)
-
-                If header <> "" Then
-                    Dim rangeName As String
-                    rangeName = ToRangeName(header)
-
-                    If rangeName <> "" Then
-                        Dim targetRange As Range
-                        Set targetRange = GetNamedRange(wsReport, rangeName)
-
-                        If Not targetRange Is Nothing Then
-                            targetRange.Value = wsData.Cells(rowIndex, colIndex).Value
-                        End If
-                    End If
-                End If
-            Next colIndex
-
-            Exit For
+            entryCount = entryCount + 1
+            ReDim Preserve dataRows(1 To entryCount)
+            dataRows(entryCount) = rowIndex
         End If
     Next rowIndex
+
+    If entryCount = 0 Then
+        ' Clear existing cells to avoid stale values when no alarms are present.
+        Dim clearDepth As Long
+        clearDepth = lastRow - 1
+
+        If clearDepth < 1 Then clearDepth = 1
+
+        For colIndex = 1 To headerCount
+            targetRanges(colIndex).Resize(clearDepth, 1).ClearContents
+        Next colIndex
+        Exit Sub
+    End If
+
+    ' Clear enough rows to cover the current dataset so old entries do not linger.
+    Dim maxDepth As Long
+    maxDepth = Application.Max(entryCount, lastRow - 1)
+
+    For colIndex = 1 To headerCount
+        targetRanges(colIndex).Resize(maxDepth, 1).ClearContents
+    Next colIndex
+
+    Dim entryIndex As Long
+    For entryIndex = 1 To entryCount
+        rowIndex = dataRows(entryIndex)
+
+        For colIndex = 1 To headerCount
+            wsReport.Cells(targetRanges(colIndex).Row + (entryIndex - 1), _
+                           targetRanges(colIndex).Column).Value = _
+                           wsData.Cells(rowIndex, sourceCols(colIndex)).Value
+        Next colIndex
+    Next entryIndex
 End Sub
 
 ' Builds the name of a dependent UserForm based on the current selections, e.g.,
