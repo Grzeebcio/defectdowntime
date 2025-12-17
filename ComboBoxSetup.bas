@@ -349,11 +349,9 @@ Private Sub CommandButtonSave_Click()
 End Sub
 
 Private Sub CommandButtonPostoj_Click()
-    On Error GoTo ShowError
-    UserFormAwarie.Show vbModeless
-    Exit Sub
-ShowError:
-    MsgBox "Nie można otworzyć formularza UserFormAwarie.", vbExclamation
+    If Not TryShowForm("UserFormAwarie") Then
+        MsgBox "Nie można otworzyć formularza UserFormAwarie.", vbExclamation
+    End If
 End Sub
 
 ' Saves all form entries into the "data" sheet. Columns B, C, and D are cleared on
