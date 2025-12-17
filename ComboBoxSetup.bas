@@ -606,10 +606,13 @@ Private Sub CopyAlarmValues(ByVal wsData As Worksheet, ByVal wsReport As Workshe
     Dim rangeName As String
     Dim targetRange As Range
 
-    Dim headerCount As Long
-    Dim headers() As String
-    Dim sourceCols() As Long
-    Dim targetRanges() As Range
+    Dim headers As Collection
+    Dim sourceCols As Collection
+    Dim targetRanges As Collection
+
+    Set headers = New Collection
+    Set sourceCols = New Collection
+    Set targetRanges = New Collection
 
     For colIndex = startCol To endCol
         header = Trim$(wsData.Cells(1, colIndex).Value)
@@ -621,18 +624,16 @@ Private Sub CopyAlarmValues(ByVal wsData As Worksheet, ByVal wsReport As Workshe
                 Set targetRange = GetNamedRange(wsReport, rangeName)
 
                 If Not targetRange Is Nothing Then
-                    headerCount = headerCount + 1
-                    ReDim Preserve headers(1 To headerCount)
-                    ReDim Preserve sourceCols(1 To headerCount)
-                    ReDim Preserve targetRanges(1 To headerCount)
-
-                    headers(headerCount) = header
-                    sourceCols(headerCount) = colIndex
-                    Set targetRanges(headerCount) = targetRange
+                    headers.Add header
+                    sourceCols.Add colIndex
+                    targetRanges.Add targetRange
                 End If
             End If
         End If
     Next colIndex
+
+    Dim headerCount As Long
+    headerCount = targetRanges.Count
 
     If headerCount = 0 Then Exit Sub
 
@@ -664,7 +665,9 @@ Private Sub CopyAlarmValues(ByVal wsData As Worksheet, ByVal wsReport As Workshe
         If clearDepth < 1 Then clearDepth = 1
 
         For colIndex = 1 To headerCount
-            targetRanges(colIndex).Resize(clearDepth, 1).ClearContents
+            If Not targetRanges(colIndex) Is Nothing Then
+                targetRanges(colIndex).Resize(clearDepth, 1).ClearContents
+            End If
         Next colIndex
         Exit Sub
     End If
@@ -674,7 +677,9 @@ Private Sub CopyAlarmValues(ByVal wsData As Worksheet, ByVal wsReport As Workshe
     maxDepth = Application.Max(entryCount, lastRow - 1)
 
     For colIndex = 1 To headerCount
-        targetRanges(colIndex).Resize(maxDepth, 1).ClearContents
+        If Not targetRanges(colIndex) Is Nothing Then
+            targetRanges(colIndex).Resize(maxDepth, 1).ClearContents
+        End If
     Next colIndex
 
     Dim entryIndex As Long
@@ -682,9 +687,11 @@ Private Sub CopyAlarmValues(ByVal wsData As Worksheet, ByVal wsReport As Workshe
         rowIndex = dataRows(entryIndex)
 
         For colIndex = 1 To headerCount
-            wsReport.Cells(targetRanges(colIndex).Row + (entryIndex - 1), _
-                           targetRanges(colIndex).Column).Value = _
-                           wsData.Cells(rowIndex, sourceCols(colIndex)).Value
+            If Not targetRanges(colIndex) Is Nothing Then
+                wsReport.Cells(targetRanges(colIndex).Row + (entryIndex - 1), _
+                               targetRanges(colIndex).Column).Value = _
+                               wsData.Cells(rowIndex, CLng(sourceCols(colIndex))).Value
+            End If
         Next colIndex
     Next entryIndex
 End Sub
