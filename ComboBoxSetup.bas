@@ -511,15 +511,39 @@ End Sub
 
 ' Creates and shows a UserForm by name if it exists in the project. Returns True on success.
 Private Function TryShowForm(ByVal formName As String) As Boolean
-    On Error GoTo CleanFail
     Dim frm As Object
-    Set frm = VBA.UserForms.Add(formName)
-    frm.Show vbModeless
-    TryShowForm = True
-    Exit Function
 
-CleanFail:
-    TryShowForm = False
+    ' First, try to create a fresh instance by name.
+    On Error Resume Next
+    Set frm = VBA.UserForms.Add(formName)
+    If Err.Number = 0 And Not frm Is Nothing Then
+        frm.Show vbModeless
+        TryShowForm = True
+        Exit Function
+    End If
+
+    Err.Clear
+    Set frm = Nothing
+
+    ' Next, see if an instance is already loaded and show it.
+    Dim loaded As Object
+    For Each loaded In VBA.UserForms
+        If StrComp(loaded.Name, formName, vbTextCompare) = 0 Then
+            loaded.Show vbModeless
+            TryShowForm = True
+            Exit Function
+        End If
+    Next loaded
+
+    ' Final attempt: call the form's Show method directly by name.
+    On Error Resume Next
+    Application.Run formName & ".Show", vbModeless
+    If Err.Number = 0 Then
+        TryShowForm = True
+    Else
+        TryShowForm = False
+    End If
+    Err.Clear
 End Function
 
 ' Persists all known problem labels (from cfg_dane) into column A and writes any
