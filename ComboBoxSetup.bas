@@ -474,6 +474,56 @@ Private Sub UnhideFormSheet(ByVal linia As String, ByVal shiftVal As Long, _
     wsTarget.Activate
 End Sub
 
+' Builds the name of a dependent UserForm based on the current selections, e.g.,
+' "PS3-1zm-RO-PRASA". Returns an empty string when required selections are missing.
+Private Function BuildDependentFormName() As String
+    Dim linia As String
+    linia = Trim$(Me.ComboBoxLinia.Value)
+
+    If linia = "" Then Exit Function
+
+    Dim shiftVal As Long
+    shiftVal = CLng(Val(Me.ComboBoxZmiana.Value))
+    If shiftVal < 1 Or shiftVal > 3 Then Exit Function
+
+    If mSelectedROST = "" Or mSelectedPrasaProces = "" Then Exit Function
+
+    BuildDependentFormName = linia & "-" & shiftVal & "zm-" & _
+                             UCase$(mSelectedROST) & "-" & UCase$(mSelectedPrasaProces)
+End Function
+
+' Attempts to show the dependent UserForm that matches the current selections.
+' Displays a warning if any selection is missing or if the form cannot be loaded.
+Public Sub ShowDependentUserForm()
+    If Not EnsureProcessSelections() Then Exit Sub
+
+    Dim formName As String
+    formName = BuildDependentFormName
+
+    If formName = "" Then
+        MsgBox "Uzupełnij linię, zmianę oraz wybory RO/ST i PRASA/PROCES, aby otworzyć powiązany formularz.", _
+               vbExclamation
+        Exit Sub
+    End If
+
+    If Not TryShowForm(formName) Then
+        MsgBox "Nie znaleziono formularza " & formName & ".", vbExclamation
+    End If
+End Sub
+
+' Creates and shows a UserForm by name if it exists in the project. Returns True on success.
+Private Function TryShowForm(ByVal formName As String) As Boolean
+    On Error GoTo CleanFail
+    Dim frm As Object
+    Set frm = VBA.UserForms.Add(formName)
+    frm.Show vbModeless
+    TryShowForm = True
+    Exit Function
+
+CleanFail:
+    TryShowForm = False
+End Function
+
 ' Persists all known problem labels (from cfg_dane) into column A and writes any
 ' entered values for the active selection into the chosen shift column.
 Private Sub SaveProblemEntries(ByVal ws As Worksheet, ByVal targetCol As Long)
