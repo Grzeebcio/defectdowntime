@@ -543,13 +543,18 @@ Private Sub UpdateReportValues(ByVal wsReport As Worksheet, ByVal sourceCol As L
             Dim valueToCopy As Variant
             valueToCopy = wsData.Cells(rowIndex, sourceCol).Value
 
-            Dim targetRange As Range
-            On Error Resume Next
-            Set targetRange = wsReport.Range(label)
-            On Error GoTo 0
+            Dim rangeName As String
+            rangeName = ToRangeName(label)
 
-            If Not targetRange Is Nothing Then
-                targetRange.Value = valueToCopy
+            If rangeName <> "" Then
+                Dim targetRange As Range
+                On Error Resume Next
+                Set targetRange = wsReport.Range(rangeName)
+                On Error GoTo 0
+
+                If Not targetRange Is Nothing Then
+                    targetRange.Value = valueToCopy
+                End If
             End If
         End If
     Next rowIndex
@@ -1011,4 +1016,19 @@ Private Function NormalizeLabel(ByVal label As String) As String
     Dim cleaned As String
     cleaned = Replace(trimmed, " ", "_")
     NormalizeLabel = cleaned
+End Function
+
+' Converts a stored label into a valid range name by normalizing spaces and
+' replacing other characters Excel disallows in named ranges.
+Private Function ToRangeName(ByVal label As String) As String
+    Dim cleaned As String
+    cleaned = NormalizeLabel(label)
+
+    If cleaned = "" Then Exit Function
+
+    cleaned = Replace(cleaned, "/", "_")
+    cleaned = Replace(cleaned, "-", "_")
+    cleaned = Replace(cleaned, ".", "_")
+
+    ToRangeName = cleaned
 End Function
