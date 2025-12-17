@@ -581,6 +581,22 @@ Private Function GetNamedRange(ByVal ws As Worksheet, ByVal rangeName As String)
     End If
 End Function
 
+Private Function SafeGetRange(ByVal ranges As Collection, ByVal index As Long) As Range
+    On Error Resume Next
+    Set SafeGetRange = ranges.Item(index)
+    On Error GoTo 0
+End Function
+
+Private Function SafeGetLong(ByVal values As Collection, ByVal index As Long) As Long
+    On Error Resume Next
+    SafeGetLong = CLng(values.Item(index))
+    If Err.Number <> 0 Then
+        Err.Clear
+        SafeGetLong = 0
+    End If
+    On Error GoTo 0
+End Function
+
 ' Copies all alarm entries for the given shift into the report sheet, stacking them
 ' under the existing named ranges without requiring additional named cells.
 Private Sub CopyAlarmValues(ByVal wsData As Worksheet, ByVal wsReport As Worksheet, _
@@ -665,8 +681,9 @@ Private Sub CopyAlarmValues(ByVal wsData As Worksheet, ByVal wsReport As Workshe
         If clearDepth < 1 Then clearDepth = 1
 
         For colIndex = 1 To headerCount
-            If Not targetRanges(colIndex) Is Nothing Then
-                targetRanges(colIndex).Resize(clearDepth, 1).ClearContents
+            Set targetRange = SafeGetRange(targetRanges, colIndex)
+            If Not targetRange Is Nothing Then
+                targetRange.Resize(clearDepth, 1).ClearContents
             End If
         Next colIndex
         Exit Sub
@@ -677,8 +694,9 @@ Private Sub CopyAlarmValues(ByVal wsData As Worksheet, ByVal wsReport As Workshe
     maxDepth = Application.Max(entryCount, lastRow - 1)
 
     For colIndex = 1 To headerCount
-        If Not targetRanges(colIndex) Is Nothing Then
-            targetRanges(colIndex).Resize(maxDepth, 1).ClearContents
+        Set targetRange = SafeGetRange(targetRanges, colIndex)
+        If Not targetRange Is Nothing Then
+            targetRange.Resize(maxDepth, 1).ClearContents
         End If
     Next colIndex
 
@@ -687,10 +705,13 @@ Private Sub CopyAlarmValues(ByVal wsData As Worksheet, ByVal wsReport As Workshe
         rowIndex = dataRows(entryIndex)
 
         For colIndex = 1 To headerCount
-            If Not targetRanges(colIndex) Is Nothing Then
-                wsReport.Cells(targetRanges(colIndex).Row + (entryIndex - 1), _
-                               targetRanges(colIndex).Column).Value = _
-                               wsData.Cells(rowIndex, CLng(sourceCols(colIndex))).Value
+            Set targetRange = SafeGetRange(targetRanges, colIndex)
+            sourceCol = SafeGetLong(sourceCols, colIndex)
+
+            If Not targetRange Is Nothing And sourceCol > 0 Then
+                wsReport.Cells(targetRange.Row + (entryIndex - 1), _
+                               targetRange.Column).Value = _
+                               wsData.Cells(rowIndex, sourceCol).Value
             End If
         Next colIndex
     Next entryIndex
