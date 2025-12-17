@@ -377,8 +377,6 @@ Private Sub SaveFormData()
 
     If Not EnsureProcessSelections() Then Exit Sub
 
-    UnhideFormSheet Trim$(Me.ComboBoxLinia.Value), shiftVal, mSelectedROST, mSelectedPrasaProces
-
     ' Clear previous entries so each save starts from a clean slate.
     ws.Columns("B:D").ClearContents
     ws.Columns("I").ClearContents
@@ -414,6 +412,15 @@ Private Sub SaveFormData()
     WriteField ws, "Suma wykonania", Me.TextBoxSum.Value, targetCol, 9 ' Column I
 
     SaveProblemEntries ws, targetCol
+
+    Dim wsReport As Worksheet
+    Set wsReport = GetReportSheet(Trim$(Me.ComboBoxLinia.Value), shiftVal, _
+                                  mSelectedROST, mSelectedPrasaProces)
+
+    If Not wsReport Is Nothing Then
+        UpdateReportPlan wsReport, targetCol
+        wsReport.Activate
+    End If
 End Sub
 
 ' Verifies required selections and inputs before running save or downtime actions.
@@ -484,7 +491,17 @@ End Function
 ' "PS3-1zm-RO-PRASA".
 Private Sub UnhideFormSheet(ByVal linia As String, ByVal shiftVal As Long, _
                             ByVal rost As String, ByVal prasaProces As String)
-    If linia = "" Or rost = "" Or prasaProces = "" Then Exit Sub
+    Dim wsTarget As Worksheet
+    Set wsTarget = GetReportSheet(linia, shiftVal, rost, prasaProces)
+
+    If wsTarget Is Nothing Then Exit Sub
+
+    wsTarget.Activate
+End Sub
+
+Private Function GetReportSheet(ByVal linia As String, ByVal shiftVal As Long, _
+                                ByVal rost As String, ByVal prasaProces As String) As Worksheet
+    If linia = "" Or rost = "" Or prasaProces = "" Then Exit Function
 
     Dim safeLinia As String
     Dim safeRost As String
@@ -502,10 +519,29 @@ Private Sub UnhideFormSheet(ByVal linia As String, ByVal shiftVal As Long, _
     Set wsTarget = ThisWorkbook.Worksheets(sheetName)
     On Error GoTo 0
 
-    If wsTarget Is Nothing Then Exit Sub
+    If wsTarget Is Nothing Then Exit Function
 
     wsTarget.Visible = xlSheetVisible
-    wsTarget.Activate
+    Set GetReportSheet = wsTarget
+End Function
+
+Private Sub UpdateReportPlan(ByVal wsReport As Worksheet, ByVal sourceCol As Long)
+    If sourceCol < 2 Or sourceCol > 4 Then Exit Sub
+
+    Dim wsData As Worksheet
+    Set wsData = ThisWorkbook.Worksheets("data")
+
+    Dim planValue As Variant
+    planValue = GetFieldValue(wsData, "Plan", sourceCol)
+
+    Dim targetRange As Range
+    On Error Resume Next
+    Set targetRange = wsReport.Range("Plan")
+    On Error GoTo 0
+
+    If Not targetRange Is Nothing Then
+        targetRange.Value = planValue
+    End If
 End Sub
 
 ' Builds the name of a dependent UserForm based on the current selections, e.g.,
@@ -900,6 +936,24 @@ Private Function FindOrCreateRow(ByVal ws As Worksheet, ByVal label As String) A
     ws.Cells(FindOrCreateRow, 1).Value = label
 End Function
 
+Private Function FindRow(ByVal ws As Worksheet, ByVal label As String) As Long
+    Dim normalized As String
+    normalized = NormalizeLabel(label)
+
+    If normalized = "" Then Exit Function
+
+    Dim lastRow As Long
+    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+
+    Dim rowIndex As Long
+    For rowIndex = 1 To lastRow
+        If CStr(ws.Cells(rowIndex, 1).Value) = normalized Then
+            FindRow = rowIndex
+            Exit Function
+        End If
+    Next rowIndex
+End Function
+
 ' Writes a value into the row identified by label, using targetCol or a fixed column.
 Private Sub WriteField(ByVal ws As Worksheet, ByVal label As String, ByVal value As Variant, _
                        ByVal targetCol As Long, Optional ByVal fixedCol As Long = 0)
@@ -920,6 +974,18 @@ Private Sub WriteField(ByVal ws As Worksheet, ByVal label As String, ByVal value
 
     ws.Cells(rowIndex, colToUse).Value = value
 End Sub
+
+Private Function GetFieldValue(ByVal ws As Worksheet, ByVal label As String, _
+                               ByVal targetCol As Long) As Variant
+    If targetCol <= 0 Then Exit Function
+
+    Dim rowIndex As Long
+    rowIndex = FindRow(ws, label)
+
+    If rowIndex = 0 Then Exit Function
+
+    GetFieldValue = ws.Cells(rowIndex, targetCol).Value
+End Function
 
 ' Normalizes labels for column A by replacing spaces with underscores.
 Private Function NormalizeLabel(ByVal label As String) As String
