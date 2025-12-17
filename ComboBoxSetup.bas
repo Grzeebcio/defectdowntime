@@ -345,10 +345,12 @@ Private Sub CommandButtonProces_Click()
 End Sub
 
 Private Sub CommandButtonSave_Click()
+    If Not ValidateRequiredInputs() Then Exit Sub
     SaveFormData
 End Sub
 
 Private Sub CommandButtonPostoj_Click()
+    If Not ValidateRequiredInputs() Then Exit Sub
     If Not TryShowForm("UserFormAwarie") Then
         MsgBox "Nie można otworzyć formularza UserFormAwarie.", vbExclamation
     End If
@@ -413,6 +415,40 @@ Private Sub SaveFormData()
 
     SaveProblemEntries ws, targetCol
 End Sub
+
+' Verifies required selections and inputs before running save or downtime actions.
+Private Function ValidateRequiredInputs() As Boolean
+    Dim missing As Collection
+    Set missing = New Collection
+
+    If Trim$(Me.ComboBoxLinia.Value) = "" Then missing.Add "linia"
+    If Trim$(Me.ComboBoxProjekt.Value) = "" Then missing.Add "projekt"
+    If Trim$(Me.ComboBoxBrygada.Value) = "" Then missing.Add "brygada"
+    If Trim$(Me.ComboBoxZmiana.Value) = "" Then missing.Add "zmiana"
+    If Trim$(Me.TextBoxPlan.Value) = "" Then missing.Add "plan"
+    If Trim$(Me.TextBoxSum.Value) = "" Then missing.Add "realizacja"
+
+    If missing.Count > 0 Then
+        Dim parts() As String
+        ReDim parts(0 To missing.Count - 1)
+
+        Dim idx As Long
+        For idx = 1 To missing.Count
+            parts(idx - 1) = missing(idx)
+        Next idx
+
+        MsgBox "Uzupełnij pola: " & Join(parts, ", ") & ".", vbExclamation
+        ValidateRequiredInputs = False
+        Exit Function
+    End If
+
+    If Not EnsureProcessSelections() Then
+        ValidateRequiredInputs = False
+        Exit Function
+    End If
+
+    ValidateRequiredInputs = True
+End Function
 
 ' Ensures RO/ST and Prasa/Proces selections exist. If only one option is available
 ' in a pair, it is auto-selected; otherwise, the user is prompted to choose.
