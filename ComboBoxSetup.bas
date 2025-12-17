@@ -556,6 +556,8 @@ Private Sub UpdateReportValues(ByVal wsReport As Worksheet, ByVal sourceCol As L
             End If
         End If
     Next rowIndex
+
+    CopyAlarmValues wsData, wsReport, sourceCol
 End Sub
 
 ' Returns a named range scoped to the worksheet or workbook, or Nothing if the name
@@ -578,6 +580,62 @@ Private Function GetNamedRange(ByVal ws As Worksheet, ByVal rangeName As String)
         On Error GoTo 0
     End If
 End Function
+
+' Copies the first alarm entry for the given shift into the report sheet.
+Private Sub CopyAlarmValues(ByVal wsData As Worksheet, ByVal wsReport As Worksheet, _
+                            ByVal shiftCol As Long)
+    Dim startCol As Long, endCol As Long
+
+    Select Case shiftCol
+        Case 2 ' Shift 1 -> G:N
+            startCol = 7: endCol = 14
+        Case 3 ' Shift 2 -> P:W
+            startCol = 16: endCol = 23
+        Case 4 ' Shift 3 -> Z:AG
+            startCol = 26: endCol = 33
+        Case Else
+            Exit Sub
+    End Select
+
+    Dim lastRow As Long
+    lastRow = wsData.Cells(wsData.Rows.Count, startCol).End(xlUp).Row
+
+    Dim rowIndex As Long
+    For rowIndex = 2 To lastRow
+        Dim hasData As Boolean
+        Dim colIndex As Long
+
+        For colIndex = startCol To endCol
+            If Trim$(wsData.Cells(rowIndex, colIndex).Value) <> "" Then
+                hasData = True
+                Exit For
+            End If
+        Next colIndex
+
+        If hasData Then
+            For colIndex = startCol To endCol
+                Dim header As String
+                header = Trim$(wsData.Cells(1, colIndex).Value)
+
+                If header <> "" Then
+                    Dim rangeName As String
+                    rangeName = ToRangeName(header)
+
+                    If rangeName <> "" Then
+                        Dim targetRange As Range
+                        Set targetRange = GetNamedRange(wsReport, rangeName)
+
+                        If Not targetRange Is Nothing Then
+                            targetRange.Value = wsData.Cells(rowIndex, colIndex).Value
+                        End If
+                    End If
+                End If
+            Next colIndex
+
+            Exit For
+        End If
+    Next rowIndex
+End Sub
 
 ' Builds the name of a dependent UserForm based on the current selections, e.g.,
 ' "PS3-1zm-RO-PRASA". Returns an empty string when required selections are missing.
