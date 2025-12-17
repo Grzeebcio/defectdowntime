@@ -418,7 +418,7 @@ Private Sub SaveFormData()
                                   mSelectedROST, mSelectedPrasaProces)
 
     If Not wsReport Is Nothing Then
-        UpdateReportPlan wsReport, targetCol
+        UpdateReportValues wsReport, targetCol
         wsReport.Activate
     End If
 End Sub
@@ -525,23 +525,34 @@ Private Function GetReportSheet(ByVal linia As String, ByVal shiftVal As Long, _
     Set GetReportSheet = wsTarget
 End Function
 
-Private Sub UpdateReportPlan(ByVal wsReport As Worksheet, ByVal sourceCol As Long)
+Private Sub UpdateReportValues(ByVal wsReport As Worksheet, ByVal sourceCol As Long)
     If sourceCol < 2 Or sourceCol > 4 Then Exit Sub
 
     Dim wsData As Worksheet
     Set wsData = ThisWorkbook.Worksheets("data")
 
-    Dim planValue As Variant
-    planValue = GetFieldValue(wsData, "Plan", sourceCol)
+    Dim lastRow As Long
+    lastRow = wsData.Cells(wsData.Rows.Count, 1).End(xlUp).Row
 
-    Dim targetRange As Range
-    On Error Resume Next
-    Set targetRange = wsReport.Range("Plan")
-    On Error GoTo 0
+    Dim rowIndex As Long
+    For rowIndex = 1 To lastRow
+        Dim label As String
+        label = Trim$(wsData.Cells(rowIndex, 1).Value)
 
-    If Not targetRange Is Nothing Then
-        targetRange.Value = planValue
-    End If
+        If label <> "" Then
+            Dim valueToCopy As Variant
+            valueToCopy = wsData.Cells(rowIndex, sourceCol).Value
+
+            Dim targetRange As Range
+            On Error Resume Next
+            Set targetRange = wsReport.Range(label)
+            On Error GoTo 0
+
+            If Not targetRange Is Nothing Then
+                targetRange.Value = valueToCopy
+            End If
+        End If
+    Next rowIndex
 End Sub
 
 ' Builds the name of a dependent UserForm based on the current selections, e.g.,
