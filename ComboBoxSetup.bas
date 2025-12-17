@@ -548,9 +548,7 @@ Private Sub UpdateReportValues(ByVal wsReport As Worksheet, ByVal sourceCol As L
 
             If rangeName <> "" Then
                 Dim targetRange As Range
-                On Error Resume Next
-                Set targetRange = wsReport.Range(rangeName)
-                On Error GoTo 0
+                Set targetRange = GetNamedRange(wsReport, rangeName)
 
                 If Not targetRange Is Nothing Then
                     targetRange.Value = valueToCopy
@@ -559,6 +557,27 @@ Private Sub UpdateReportValues(ByVal wsReport As Worksheet, ByVal sourceCol As L
         End If
     Next rowIndex
 End Sub
+
+' Returns a named range scoped to the worksheet or workbook, or Nothing if the name
+' is not defined. This avoids accidental column/row references when a name like
+' "JC" or "A" is absent from the Names collection.
+Private Function GetNamedRange(ByVal ws As Worksheet, ByVal rangeName As String) As Range
+    Dim nm As Name
+    Dim qualified As String
+    qualified = "'" & ws.Name & "'!" & rangeName
+
+    On Error Resume Next
+    Set nm = ws.Names(rangeName)
+    If nm Is Nothing Then Set nm = ws.Parent.Names(qualified)
+    If nm Is Nothing Then Set nm = ws.Parent.Names(rangeName)
+    On Error GoTo 0
+
+    If Not nm Is Nothing Then
+        On Error Resume Next
+        Set GetNamedRange = nm.RefersToRange
+        On Error GoTo 0
+    End If
+End Function
 
 ' Builds the name of a dependent UserForm based on the current selections, e.g.,
 ' "PS3-1zm-RO-PRASA". Returns an empty string when required selections are missing.
