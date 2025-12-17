@@ -589,11 +589,19 @@ End Function
 
 Private Function SafeGetLong(ByVal values As Collection, ByVal index As Long) As Long
     On Error Resume Next
+
+    If values Is Nothing Then
+        SafeGetLong = 0
+        On Error GoTo 0
+        Exit Function
+    End If
+
     SafeGetLong = CLng(values.Item(index))
     If Err.Number <> 0 Then
         Err.Clear
         SafeGetLong = 0
     End If
+
     On Error GoTo 0
 End Function
 
