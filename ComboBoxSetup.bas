@@ -23,7 +23,8 @@ End Sub
 ' Fills the line and project combo boxes when the form opens.
 Private Sub InitializeLiniaIProjekty()
     Dim ws As Worksheet
-    Set ws = ThisWorkbook.Worksheets("cfg_projekt")
+    Set ws = TryGetWorksheet("cfg_projekt")
+    If ws Is Nothing Then Exit Sub
 
     Dim lastCol As Long
     lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
@@ -68,7 +69,8 @@ End Sub
 ' Populates ComboBoxProjekt with the projects found in the column for the given line.
 Public Sub LoadProjectsForLine(ByVal linia As String)
     Dim ws As Worksheet
-    Set ws = ThisWorkbook.Worksheets("cfg_projekt")
+    Set ws = TryGetWorksheet("cfg_projekt")
+    If ws Is Nothing Then Exit Sub
 
     Dim colIndex As Variant
     colIndex = Application.Match(linia, ws.Rows(1), 0)
@@ -306,6 +308,13 @@ Private Function ControlExists(ByVal controlName As String) As Boolean
     Set tmp = Me.Controls(controlName)
     ControlExists = (Err.Number = 0)
     Err.Clear
+End Function
+
+' Returns a worksheet when it exists; otherwise returns Nothing without raising.
+Private Function TryGetWorksheet(ByVal sheetName As String) As Worksheet
+    On Error Resume Next
+    Set TryGetWorksheet = ThisWorkbook.Worksheets(sheetName)
+    On Error GoTo 0
 End Function
 
 Private Sub CommandButtonRO_Click()
