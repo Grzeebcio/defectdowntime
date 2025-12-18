@@ -629,6 +629,7 @@ Private Sub CopyAlarmValues(ByVal wsData As Worksheet, ByVal wsReport As Workshe
     Dim header As String
     Dim rangeName As String
     Dim targetRange As Range
+    Dim sourceCol As Long
 
     Dim headers As Collection
     Dim sourceCols As Collection
