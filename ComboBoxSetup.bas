@@ -8,6 +8,10 @@ Private mSelectedROST As String
 Private mSelectedPrasaProces As String
 Private mAppState As Object
 
+Private Sub MultiPage1_Change()
+
+End Sub
+
 ' Initializes ComboBoxLinia with line headers from row 1 of the cfg_projekt sheet
 ' and loads ComboBoxProjekt with the projects under the currently selected line.
 ' Initializes the main form, populating combos and syncing shared context.
@@ -36,8 +40,8 @@ End Sub
 Private Sub InitializeLiniaIProjekty()
     On Error GoTo ExitInit
 
-    Dim cboLinia As MSForms.ComboBox
-    Dim cboProjekt As MSForms.ComboBox
+    Dim cboLinia As MSForms.comboBox
+    Dim cboProjekt As MSForms.comboBox
 
     Set cboLinia = GetComboIfExists("ComboBoxLinia")
     Set cboProjekt = GetComboIfExists("ComboBoxProjekt")
@@ -55,17 +59,17 @@ Private Sub InitializeLiniaIProjekty()
     With cboLinia
         .Clear
         For col = 1 To lastCol
-            If Trim$(ws.Cells(1, col).Value) <> "" Then
-                .AddItem CStr(ws.Cells(1, col).Value)
+            If Trim$(ws.Cells(1, col).value) <> "" Then
+                .AddItem CStr(ws.Cells(1, col).value)
             End If
         Next col
     End With
 
     ' Preload projects for the first available line
     If cboLinia.ListCount > 0 Then
-        cboLinia.Value = cboLinia.List(0)
-        LoadProjectsForLine cboLinia.Value
-        LoadOperatorsForLine cboLinia.Value
+        cboLinia.value = cboLinia.List(0)
+        LoadProjectsForLine cboLinia.value
+        LoadOperatorsForLine cboLinia.value
         UpdateButtonVisibility
     End If
 
@@ -109,14 +113,14 @@ Public Sub LoadProjectsForLine(ByVal linia As String)
     If IsError(colIndex) Then Exit Sub
 
     Dim lastRow As Long
-    lastRow = ws.Cells(ws.Rows.Count, CLng(colIndex)).End(xlUp).Row
+    lastRow = ws.Cells(ws.Rows.Count, CLng(colIndex)).End(xlUp).row
 
     Dim row As Long
     With Me.ComboBoxProjekt
         .Clear
         For row = 2 To lastRow
-            If Trim$(ws.Cells(row, CLng(colIndex)).Value) <> "" Then
-                .AddItem CStr(ws.Cells(row, CLng(colIndex)).Value)
+            If Trim$(ws.Cells(row, CLng(colIndex)).value) <> "" Then
+                .AddItem CStr(ws.Cells(row, CLng(colIndex)).value)
             End If
         Next row
     End With
@@ -125,8 +129,8 @@ End Sub
 ' Event handler to keep the project list in sync when the line selection changes.
 ' Keeps project and operator choices in sync when line changes.
 Private Sub ComboBoxLinia_Change()
-    LoadProjectsForLine Me.ComboBoxLinia.Value
-    LoadOperatorsForLine Me.ComboBoxLinia.Value
+    LoadProjectsForLine Me.ComboBoxLinia.value
+    LoadOperatorsForLine Me.ComboBoxLinia.value
     UpdateButtonVisibility
     HideAllProblems
     RefreshSharedContext Me
@@ -146,12 +150,12 @@ Private Sub HideAllProcessButtons()
     mSelectedROST = ""
     mSelectedPrasaProces = ""
     ResetButtonStyle Me.CommandButtonRO
-    ResetButtonStyle Me.CommandButtonST
+    ResetButtonStyle Me.CommandButtonSt
     ResetButtonStyle Me.CommandButtonPrasa
     ResetButtonStyle Me.CommandButtonProces
 
     Me.CommandButtonRO.Visible = False
-    Me.CommandButtonST.Visible = False
+    Me.CommandButtonSt.Visible = False
     Me.CommandButtonPrasa.Visible = False
     Me.CommandButtonProces.Visible = False
 End Sub
@@ -161,7 +165,7 @@ End Sub
 Private Sub UpdateButtonVisibility()
     HideAllProcessButtons
 
-    Dim linia As String: linia = Trim$(Me.ComboBoxLinia.Value)
+    Dim linia As String: linia = Trim$(Me.ComboBoxLinia.value)
     If linia = "" Then Exit Sub
 
     Dim ws As Worksheet
@@ -183,7 +187,7 @@ Private Sub UpdateButtonVisibility()
     End If
 
     Dim lastRow As Long
-    lastRow = ws.Cells(ws.Rows.Count, CLng(colLinia)).End(xlUp).Row
+    lastRow = ws.Cells(ws.Rows.Count, CLng(colLinia)).End(xlUp).row
 
     mHasRO = False
     mHasST = False
@@ -192,22 +196,22 @@ Private Sub UpdateButtonVisibility()
 
     Dim rowIndex As Long
     For rowIndex = 2 To lastRow
-        If Trim$(ws.Cells(rowIndex, CLng(colLinia)).Value) = linia Then
+        If Trim$(ws.Cells(rowIndex, CLng(colLinia)).value) = linia Then
             If Not IsError(colProjekt) Then
                 Dim projValue As String
-                projValue = Trim$(ws.Cells(rowIndex, CLng(colProjekt)).Value)
-                If projValue <> "" And projValue <> Trim$(Me.ComboBoxProjekt.Value) Then
+                projValue = Trim$(ws.Cells(rowIndex, CLng(colProjekt)).value)
+                If projValue <> "" And projValue <> Trim$(Me.ComboBoxProjekt.value) Then
                     GoTo ContinueNext
                 End If
             End If
 
-            mHasRO = (Val(ws.Cells(rowIndex, CLng(colRO)).Value) = 1)
-            mHasST = (Val(ws.Cells(rowIndex, CLng(colST)).Value) = 1)
-            mHasPrasa = (Val(ws.Cells(rowIndex, CLng(colPrasa)).Value) = 1)
-            mHasProces = (Val(ws.Cells(rowIndex, CLng(colProces)).Value) = 1)
+            mHasRO = (val(ws.Cells(rowIndex, CLng(colRO)).value) = 1)
+            mHasST = (val(ws.Cells(rowIndex, CLng(colST)).value) = 1)
+            mHasPrasa = (val(ws.Cells(rowIndex, CLng(colPrasa)).value) = 1)
+            mHasProces = (val(ws.Cells(rowIndex, CLng(colProces)).value) = 1)
 
             ShowIfAvailable Me.CommandButtonRO, mHasRO
-            ShowIfAvailable Me.CommandButtonST, mHasST
+            ShowIfAvailable Me.CommandButtonSt, mHasST
             ShowIfAvailable Me.CommandButtonPrasa, mHasPrasa
             ShowIfAvailable Me.CommandButtonProces, mHasProces
             Exit For
@@ -238,7 +242,7 @@ Private Sub LoadOperatorsForLine(ByVal linia As String)
     If IsError(colIndex) Then Exit Sub
 
     Dim lastRow As Long
-    lastRow = ws.Cells(ws.Rows.Count, CLng(colIndex)).End(xlUp).Row
+    lastRow = ws.Cells(ws.Rows.Count, CLng(colIndex)).End(xlUp).row
 
     Dim ops As Collection
     Set ops = New Collection
@@ -246,7 +250,7 @@ Private Sub LoadOperatorsForLine(ByVal linia As String)
     Dim rowIndex As Long
     For rowIndex = 2 To lastRow
         Dim opValue As String
-        opValue = Trim$(ws.Cells(rowIndex, CLng(colIndex)).Value)
+        opValue = Trim$(ws.Cells(rowIndex, CLng(colIndex)).value)
         If opValue <> "" Then
             ops.Add opValue
         End If
@@ -271,7 +275,7 @@ End Sub
 
 ' Populates a combo box with operator names.
 ' Populates a combo box with operator names.
-Private Sub SetComboOptions(ByVal comboBox As MSForms.ComboBox, ByVal operators As Collection)
+Private Sub SetComboOptions(ByVal comboBox As MSForms.comboBox, ByVal operators As Collection)
     Dim idx As Long
 
     comboBox.Clear
@@ -339,7 +343,7 @@ Private Sub AddOperatorValue(ByVal dict As Object, ByVal rawValue As String)
     name = Trim$(rawValue)
 
     If name = "" Then Exit Sub
-    If dict.Exists(name) Then Exit Sub
+    If dict.exists(name) Then Exit Sub
 
     dict.Add name, True
 End Sub
@@ -352,7 +356,7 @@ Public Sub PopulateBoxOperatorList(ByVal targetForm As Object, Optional ByVal so
     Dim dict As Object
     Set dict = CollectOperatorNames(sourceForm)
 
-    Dim cbo As MSForms.ComboBox
+    Dim cbo As MSForms.comboBox
     Set cbo = GetComboOnForm(targetForm, "ComboBoxBoxyOp")
     If cbo Is Nothing Then Exit Sub
 
@@ -363,7 +367,7 @@ Public Sub PopulateBoxOperatorList(ByVal targetForm As Object, Optional ByVal so
         cbo.AddItem CStr(key)
     Next key
 
-    If cbo.ListCount > 0 Then cbo.Value = cbo.List(0)
+    If cbo.ListCount > 0 Then cbo.value = cbo.List(0)
 End Sub
 
 ' Prepares a related form by pushing current operator choices into its
@@ -438,19 +442,19 @@ Public Sub SaveBoxEntry(ByVal sourceForm As Object, Optional ByVal sourceMainFor
     startCol = ws.Columns("AK").Column
 
     Dim targetRow As Long
-    targetRow = ws.Cells(ws.Rows.Count, startCol).End(xlUp).Row
+    targetRow = ws.Cells(ws.Rows.Count, startCol).End(xlUp).row
     If targetRow < 2 Then
         targetRow = 2
     Else
         targetRow = targetRow + 1
     End If
 
-    ws.Cells(targetRow, startCol).Value = planDate
-    ws.Cells(targetRow, startCol + 1).Value = brygada
-    ws.Cells(targetRow, startCol + 2).Value = operatorName
-    ws.Cells(targetRow, startCol + 3).Value = boxNumber
-    ws.Cells(targetRow, startCol + 4).Value = qtyCurrent
-    ws.Cells(targetRow, startCol + 5).Value = qtyAdded
+    ws.Cells(targetRow, startCol).value = planDate
+    ws.Cells(targetRow, startCol + 1).value = brygada
+    ws.Cells(targetRow, startCol + 2).value = operatorName
+    ws.Cells(targetRow, startCol + 3).value = boxNumber
+    ws.Cells(targetRow, startCol + 4).value = qtyCurrent
+    ws.Cells(targetRow, startCol + 5).value = qtyAdded
 End Sub
 
 ' Convenience wrapper for box forms to call from their save buttons.
@@ -475,7 +479,7 @@ End Sub
 ' Highlights within the RO/ST pair without clearing Prasa/Proces selection.
 Private Sub HighlightROST(ByVal selectedButton As MSForms.CommandButton)
     ResetButtonStyle Me.CommandButtonRO
-    ResetButtonStyle Me.CommandButtonST
+    ResetButtonStyle Me.CommandButtonSt
     selectedButton.BackColor = RGB(0, 176, 80)
     RefreshSharedContext Me
 End Sub
@@ -493,7 +497,7 @@ End Sub
 ' Validates the date entered in TextBoxDay using the DD.MM.RRRR format.
 Private Sub ValidateDayInput()
     Dim rawValue As String
-    rawValue = Trim$(Me.TextBoxDay.Value)
+    rawValue = Trim$(Me.TextBoxDay.value)
 
     If rawValue = "" Then
         Me.TextBoxDay.BackColor = vbWhite
@@ -598,7 +602,7 @@ End Sub
 ' Retrieves a string value from AppState.
 Private Function GetAppStateValue(ByVal key As String) As String
     If mAppState Is Nothing Then Exit Function
-    If Not mAppState.Exists(key) Then Exit Function
+    If Not mAppState.exists(key) Then Exit Function
     GetAppStateValue = CStr(mAppState(key))
 End Function
 
@@ -627,14 +631,14 @@ Private Sub LoadStateFromSettings()
     EnsureAppState
 
     Dim lastRow As Long
-    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).row
 
     Dim rowIndex As Long
     For rowIndex = 1 To lastRow
         Dim key As String
-        key = Trim$(CStr(ws.Cells(rowIndex, 1).Value))
+        key = Trim$(CStr(ws.Cells(rowIndex, 1).value))
         If key <> "" Then
-            mAppState(key) = CStr(ws.Cells(rowIndex, 2).Value)
+            mAppState(key) = CStr(ws.Cells(rowIndex, 2).value)
         End If
     Next rowIndex
 End Sub
@@ -653,8 +657,8 @@ Private Sub SaveStateToSettings()
     ws.Columns("A:B").ClearContents
     For Each key In mAppState.Keys
         If VarType(mAppState(key)) <> vbObject Then
-            ws.Cells(rowIndex, 1).Value = CStr(key)
-            ws.Cells(rowIndex, 2).Value = CStr(mAppState(key))
+            ws.Cells(rowIndex, 1).value = CStr(key)
+            ws.Cells(rowIndex, 2).value = CStr(mAppState(key))
             rowIndex = rowIndex + 1
         End If
     Next key
@@ -711,13 +715,13 @@ End Sub
 Private Sub PopulateBoxOperatorListFromContext(ByVal targetForm As Object)
     If targetForm Is Nothing Then Exit Sub
     If mAppState Is Nothing Then Exit Sub
-    If Not mAppState.Exists("Operatorzy") Then Exit Sub
+    If Not mAppState.exists("Operatorzy") Then Exit Sub
 
     Dim ops As Object
     Set ops = mAppState("Operatorzy")
     If ops Is Nothing Then Exit Sub
 
-    Dim combo As MSForms.ComboBox
+    Dim combo As MSForms.comboBox
     Set combo = GetComboOnForm(targetForm, "ComboBoxBoxyOp")
     If combo Is Nothing Then Exit Sub
 
@@ -726,7 +730,7 @@ Private Sub PopulateBoxOperatorListFromContext(ByVal targetForm As Object)
     For Each key In ops.Keys
         combo.AddItem CStr(key)
     Next key
-    If combo.ListCount > 0 Then combo.Value = combo.List(0)
+    If combo.ListCount > 0 Then combo.value = combo.List(0)
 End Sub
 
 ' Safely sets a combo value, adding it if missing.
@@ -734,7 +738,7 @@ Private Sub SafeSetCombo(ByVal targetForm As Object, ByVal controlName As String
     If targetForm Is Nothing Then Exit Sub
     If newValue = "" Then Exit Sub
 
-    Dim combo As MSForms.ComboBox
+    Dim combo As MSForms.comboBox
     Set combo = GetComboOnForm(targetForm, controlName)
     If combo Is Nothing Then Exit Sub
 
@@ -746,7 +750,7 @@ Private Sub SafeSetCombo(ByVal targetForm As Object, ByVal controlName As String
         End If
     Next idx
     If Not exists Then combo.AddItem newValue
-    combo.Value = newValue
+    combo.value = newValue
 End Sub
 
 ' Retrieves a value from the shared context dictionary.
@@ -770,7 +774,7 @@ Private Function GetTextIfExists(ByVal formObj As Object, ByVal controlName As S
     Set ctrl = formObj.Controls(controlName)
 
     If Err.Number = 0 Then
-        GetTextIfExists = CStr(ctrl.Value)
+        GetTextIfExists = CStr(ctrl.value)
     Else
         Err.Clear
     End If
@@ -783,12 +787,12 @@ Private Sub SetTextIfExists(ByVal formObj As Object, ByVal controlName As String
     On Error Resume Next
     Dim ctrl As Object
     Set ctrl = formObj.Controls(controlName)
-    If Err.Number = 0 Then ctrl.Value = newValue Else Err.Clear
+    If Err.Number = 0 Then ctrl.value = newValue Else Err.Clear
     On Error GoTo 0
 End Sub
 
 ' Safely returns a ComboBox control when it exists and is the right type.
-Private Function GetComboIfExists(ByVal controlName As String) As MSForms.ComboBox
+Private Function GetComboIfExists(ByVal controlName As String) As MSForms.comboBox
     On Error Resume Next
     Dim ctrl As Object
     Set ctrl = Me.Controls(controlName)
@@ -797,18 +801,18 @@ Private Function GetComboIfExists(ByVal controlName As String) As MSForms.ComboB
         Exit Function
     End If
 
-    If TypeOf ctrl Is MSForms.ComboBox Then
+    If TypeOf ctrl Is MSForms.comboBox Then
         Set GetComboIfExists = ctrl
     End If
 End Function
 
 ' Returns a ComboBox from another form when it exists and is the right type.
-Private Function GetComboOnForm(ByVal formObj As Object, ByVal controlName As String) As MSForms.ComboBox
+Private Function GetComboOnForm(ByVal formObj As Object, ByVal controlName As String) As MSForms.comboBox
     On Error Resume Next
     Dim ctrl As Object
     Set ctrl = formObj.Controls(controlName)
     If Err.Number = 0 Then
-        If TypeOf ctrl Is MSForms.ComboBox Then Set GetComboOnForm = ctrl
+        If TypeOf ctrl Is MSForms.comboBox Then Set GetComboOnForm = ctrl
     Else
         Err.Clear
     End If
@@ -827,13 +831,13 @@ Private Sub CommandButtonRO_Click()
     HighlightROST Me.CommandButtonRO
     mSelectedROST = "RO"
     If mHasRO And mHasST Then
-        Me.CommandButtonST.Visible = False
+        Me.CommandButtonSt.Visible = False
     End If
     UpdateProblems
 End Sub
 
 Private Sub CommandButtonST_Click()
-    HighlightROST Me.CommandButtonST
+    HighlightROST Me.CommandButtonSt
     mSelectedROST = "ST"
     If mHasRO And mHasST Then
         Me.CommandButtonRO.Visible = False
@@ -871,24 +875,6 @@ Private Sub CommandButtonSave_Click()
     MsgBox "Dane zapisane.", vbInformation
 End Sub
 
-Private Sub CommandButtonPostoj_Click()
-    On Error GoTo PostojError
-
-    If Not ValidateRequiredInputs() Then Exit Sub
-
-    If ShowAwariePageOnMultiPage() Then Exit Sub
-
-    Dim frm As Object
-    If TryShowForm("UserFormAwarie", frm, Me) Then
-        ApplyContextToFormSafe frm, Me
-    Else
-        MsgBox "Nie można otworzyć formularza UserFormAwarie.", vbExclamation
-    End If
-    Exit Sub
-
-PostojError:
-    MsgBox "Nie można otworzyć formularza UserFormAwarie: " & Err.Description, vbExclamation
-End Sub
 
 ' Switches the multipage control to the awarie/postój page if it exists.
 Private Function ShowAwariePageOnMultiPage() As Boolean
@@ -900,7 +886,7 @@ Private Function ShowAwariePageOnMultiPage() As Boolean
     pageIndex = FindAwariePageIndex(mp)
 
     If pageIndex >= 0 Then
-        mp.Value = pageIndex
+        mp.value = pageIndex
         ShowAwariePageOnMultiPage = True
     End If
 End Function
@@ -913,7 +899,7 @@ Private Function FindAwariePageIndex(ByVal mp As MSForms.MultiPage) As Long
     FindAwariePageIndex = -1
 
     For idx = 0 To mp.Pages.Count - 1
-        captionText = LCase$(mp.Pages(idx).Caption & " " & mp.Pages(idx).Name)
+        captionText = LCase$(mp.Pages(idx).Caption & " " & mp.Pages(idx).name)
         If InStr(captionText, "awari") > 0 Or InStr(captionText, "post") > 0 Then
             FindAwariePageIndex = idx
             Exit Function
@@ -947,7 +933,7 @@ Private Sub SaveFormData()
 
     ' Ensure a valid shift and compute its target column.
     Dim shiftVal As Long
-    shiftVal = CLng(Val(GetStateOrControl(Me, "Zmiana", "ComboBoxZmiana")))
+    shiftVal = CLng(val(GetStateOrControl(Me, "Zmiana", "ComboBoxZmiana")))
     If shiftVal < 1 Or shiftVal > 3 Then
         MsgBox "Wybierz zmianę 1, 2 lub 3 przed zapisem.", vbExclamation
         Exit Sub
@@ -994,22 +980,22 @@ Private Sub SaveFormData()
     WriteField ws, "Prasa/Proces", mSelectedPrasaProces, targetCol
 
     ' Operators.
-    WriteField ws, "Operator 1", Me.ComboBoxOp1.Value, targetCol
-    WriteField ws, "Operator 2", Me.ComboBoxOp2.Value, targetCol
-    WriteField ws, "Operator 3", Me.ComboBoxOp3.Value, targetCol
-    WriteField ws, "Operator 4", Me.ComboBoxOp4.Value, targetCol
+    WriteField ws, "Operator 1", Me.ComboBoxOp1.value, targetCol
+    WriteField ws, "Operator 2", Me.ComboBoxOp2.value, targetCol
+    WriteField ws, "Operator 3", Me.ComboBoxOp3.value, targetCol
+    WriteField ws, "Operator 4", Me.ComboBoxOp4.value, targetCol
 
     ' Plan and hourly plan.
     WriteField ws, "Plan", planValue, targetCol
 
     Dim idx As Long
     For idx = 1 To 8
-        WriteField ws, "Plan H" & idx, Me.Controls("TextBoxP" & idx).Value, targetCol
+        WriteField ws, "Plan H" & idx, Me.Controls("TextBoxP" & idx).value, targetCol
     Next idx
 
     ' Hourly execution and total.
     For idx = 1 To 8
-        WriteField ws, "Wykonanie H" & idx, Me.Controls("TextBoxH" & idx).Value, targetCol
+        WriteField ws, "Wykonanie H" & idx, Me.Controls("TextBoxH" & idx).value, targetCol
     Next idx
 
     WriteField ws, "Suma wykonania", sumaValue, targetCol, 9 ' Column I
@@ -1047,28 +1033,28 @@ Private Sub AppendMainEntryToDataAK()
     startCol = ws.Columns("AK").Column
 
     Dim targetRow As Long
-    targetRow = ws.Cells(ws.Rows.Count, startCol).End(xlUp).Row
+    targetRow = ws.Cells(ws.Rows.Count, startCol).End(xlUp).row
     If targetRow < 2 Then
         targetRow = 2
     Else
         targetRow = targetRow + 1
     End If
 
-    ws.Cells(targetRow, startCol + 0).Value = dayValue                            ' AK Data
-    ws.Cells(targetRow, startCol + 1).Value = GetStateOrControl(Me, "Linia", "ComboBoxLinia")   ' AL Linia
-    ws.Cells(targetRow, startCol + 2).Value = GetStateOrControl(Me, "Projekt", "ComboBoxProjekt") ' AM Projekt
-    ws.Cells(targetRow, startCol + 3).Value = GetStateOrControl(Me, "Brygada", "ComboBoxBrygada") ' AN Brygada
-    ws.Cells(targetRow, startCol + 4).Value = GetStateOrControl(Me, "Zmiana", "ComboBoxZmiana")  ' AO Zmiana
-    ws.Cells(targetRow, startCol + 5).Value = mSelectedROST                       ' AP RO/ST
-    ws.Cells(targetRow, startCol + 6).Value = mSelectedPrasaProces                ' AQ Prasa/Proces
+    ws.Cells(targetRow, startCol + 0).value = dayValue                            ' AK Data
+    ws.Cells(targetRow, startCol + 1).value = GetStateOrControl(Me, "Linia", "ComboBoxLinia")   ' AL Linia
+    ws.Cells(targetRow, startCol + 2).value = GetStateOrControl(Me, "Projekt", "ComboBoxProjekt") ' AM Projekt
+    ws.Cells(targetRow, startCol + 3).value = GetStateOrControl(Me, "Brygada", "ComboBoxBrygada") ' AN Brygada
+    ws.Cells(targetRow, startCol + 4).value = GetStateOrControl(Me, "Zmiana", "ComboBoxZmiana")  ' AO Zmiana
+    ws.Cells(targetRow, startCol + 5).value = mSelectedROST                       ' AP RO/ST
+    ws.Cells(targetRow, startCol + 6).value = mSelectedPrasaProces                ' AQ Prasa/Proces
 
-    ws.Cells(targetRow, startCol + 7).Value = Trim$(Me.ComboBoxOp1.Value)         ' AR Op1
-    ws.Cells(targetRow, startCol + 8).Value = Trim$(Me.ComboBoxOp2.Value)         ' AS Op2
-    ws.Cells(targetRow, startCol + 9).Value = Trim$(Me.ComboBoxOp3.Value)         ' AT Op3
-    ws.Cells(targetRow, startCol + 10).Value = Trim$(Me.ComboBoxOp4.Value)        ' AU Op4
+    ws.Cells(targetRow, startCol + 7).value = Trim$(Me.ComboBoxOp1.value)         ' AR Op1
+    ws.Cells(targetRow, startCol + 8).value = Trim$(Me.ComboBoxOp2.value)         ' AS Op2
+    ws.Cells(targetRow, startCol + 9).value = Trim$(Me.ComboBoxOp3.value)         ' AT Op3
+    ws.Cells(targetRow, startCol + 10).value = Trim$(Me.ComboBoxOp4.value)        ' AU Op4
 
-    ws.Cells(targetRow, startCol + 11).Value = Trim$(GetTextIfExists(Me, "TextBoxboxilosc1")) ' AV Ilość box (stan)
-    ws.Cells(targetRow, startCol + 12).Value = GetStateOrControl(Me, "Suma", "TextBoxSum")    ' AW Realizacja
+    ws.Cells(targetRow, startCol + 11).value = Trim$(GetTextIfExists(Me, "TextBoxboxilosc1")) ' AV Ilość box (stan)
+    ws.Cells(targetRow, startCol + 12).value = GetStateOrControl(Me, "Suma", "TextBoxSum")    ' AW Realizacja
 End Sub
 
 ' Verifies required selections and inputs before running save or downtime actions.
@@ -1185,16 +1171,16 @@ Private Sub UpdateReportValues(ByVal wsReport As Worksheet, ByVal sourceCol As L
     Set wsData = ThisWorkbook.Worksheets("data")
 
     Dim lastRow As Long
-    lastRow = wsData.Cells(wsData.Rows.Count, 1).End(xlUp).Row
+    lastRow = wsData.Cells(wsData.Rows.Count, 1).End(xlUp).row
 
     Dim rowIndex As Long
     For rowIndex = 1 To lastRow
         Dim label As String
-        label = Trim$(wsData.Cells(rowIndex, 1).Value)
+        label = Trim$(wsData.Cells(rowIndex, 1).value)
 
         If label <> "" Then
             Dim valueToCopy As Variant
-            valueToCopy = wsData.Cells(rowIndex, sourceCol).Value
+            valueToCopy = wsData.Cells(rowIndex, sourceCol).value
 
             Dim rangeName As String
             rangeName = ToRangeName(label)
@@ -1204,7 +1190,7 @@ Private Sub UpdateReportValues(ByVal wsReport As Worksheet, ByVal sourceCol As L
                 Set targetRange = GetNamedRange(wsReport, rangeName)
 
                 If Not targetRange Is Nothing Then
-                    targetRange.Value = valueToCopy
+                    targetRange.value = valueToCopy
                 End If
             End If
         End If
@@ -1217,9 +1203,9 @@ End Sub
 ' is not defined. This avoids accidental column/row references when a name like
 ' "JC" or "A" is absent from the Names collection.
 Private Function GetNamedRange(ByVal ws As Worksheet, ByVal rangeName As String) As Range
-    Dim nm As Name
+    Dim nm As name
     Dim qualified As String
-    qualified = "'" & ws.Name & "'!" & rangeName
+    qualified = "'" & ws.name & "'!" & rangeName
 
     On Error Resume Next
     Set nm = ws.Names(rangeName)
@@ -1261,7 +1247,7 @@ Private Sub ClearVerticalRange(ByVal rng As Range, ByVal depth As Long)
     If depth < 1 Then depth = 1
 
     For i = 0 To depth - 1
-        Set cellToClear = TopLeftCell(anchor.Worksheet.Cells(anchor.Row + i, anchor.Column))
+        Set cellToClear = TopLeftCell(anchor.Worksheet.Cells(anchor.row + i, anchor.Column))
         If Not cellToClear Is Nothing Then
             cellToClear.MergeArea.ClearContents
         End If
@@ -1304,7 +1290,7 @@ Private Sub CopyAlarmValues(ByVal wsData As Worksheet, ByVal wsReport As Workshe
     End Select
 
     Dim lastRow As Long
-    lastRow = wsData.Cells(wsData.Rows.Count, startCol).End(xlUp).Row
+    lastRow = wsData.Cells(wsData.Rows.Count, startCol).End(xlUp).row
 
     Dim colIndex As Long
     Dim header As String
@@ -1322,7 +1308,7 @@ Private Sub CopyAlarmValues(ByVal wsData As Worksheet, ByVal wsReport As Workshe
     Set targetRanges = New Collection
 
     For colIndex = startCol To endCol
-        header = Trim$(wsData.Cells(1, colIndex).Value)
+        header = Trim$(wsData.Cells(1, colIndex).value)
 
         If header <> "" Then
             rangeName = ToRangeName(header)
@@ -1351,7 +1337,7 @@ Private Sub CopyAlarmValues(ByVal wsData As Worksheet, ByVal wsReport As Workshe
     For rowIndex = 2 To lastRow
         Dim hasData As Boolean
         For colIndex = startCol To endCol
-            If Trim$(wsData.Cells(rowIndex, colIndex).Value) <> "" Then
+            If Trim$(wsData.Cells(rowIndex, colIndex).value) <> "" Then
                 hasData = True
                 Exit For
             End If
@@ -1402,10 +1388,10 @@ Private Sub CopyAlarmValues(ByVal wsData As Worksheet, ByVal wsReport As Workshe
 
             If Not anchorCell Is Nothing And sourceCol > 0 Then
                 Dim targetCell As Range
-                Set targetCell = TopLeftCell(anchorCell.Worksheet.Cells(anchorCell.Row + (entryIndex - 1), anchorCell.Column))
+                Set targetCell = TopLeftCell(anchorCell.Worksheet.Cells(anchorCell.row + (entryIndex - 1), anchorCell.Column))
 
                 If Not targetCell Is Nothing Then
-                    targetCell.Value = wsData.Cells(rowIndex, sourceCol).Value
+                    targetCell.value = wsData.Cells(rowIndex, sourceCol).value
                 End If
             End If
         Next colIndex
@@ -1421,7 +1407,7 @@ Private Function BuildDependentFormName() As String
     If linia = "" Then Exit Function
 
     Dim shiftVal As Long
-    shiftVal = CLng(Val(GetStateOrControl(Me, "Zmiana", "ComboBoxZmiana")))
+    shiftVal = CLng(val(GetStateOrControl(Me, "Zmiana", "ComboBoxZmiana")))
     If shiftVal < 1 Or shiftVal > 3 Then Exit Function
 
     If mSelectedROST = "" Or mSelectedPrasaProces = "" Then Exit Function
@@ -1457,8 +1443,8 @@ Private Sub ApplyContextToForm(ByVal targetForm As Object)
     Dim linia As String
     Dim projekt As String
 
-    If ControlExists("ComboBoxLinia") Then linia = Me.ComboBoxLinia.Value
-    If ControlExists("ComboBoxProjekt") Then projekt = Me.ComboBoxProjekt.Value
+    If ControlExists("ComboBoxLinia") Then linia = Me.ComboBoxLinia.value
+    If ControlExists("ComboBoxProjekt") Then projekt = Me.ComboBoxProjekt.value
 
     If linia <> "" Then SetComboValueIfExists targetForm, "ComboBoxLinia", linia
     If projekt <> "" Then SetComboValueIfExists targetForm, "ComboBoxProjekt", projekt
@@ -1501,7 +1487,7 @@ Private Sub SetComboValueIfExists(ByVal targetForm As Object, ByVal controlName 
     On Error GoTo 0
 
     If ctrl Is Nothing Then Exit Sub
-    If Not TypeOf ctrl Is MSForms.ComboBox Then Exit Sub
+    If Not TypeOf ctrl Is MSForms.comboBox Then Exit Sub
 
     Dim idx As Long, exists As Boolean
     For idx = 0 To ctrl.ListCount - 1
@@ -1512,7 +1498,7 @@ Private Sub SetComboValueIfExists(ByVal targetForm As Object, ByVal controlName 
     Next idx
 
     If Not exists Then ctrl.AddItem value
-    ctrl.Value = value
+    ctrl.value = value
 End Sub
 
 ' Creates and shows a UserForm by name if it exists in the project. Returns True on success.
@@ -1538,7 +1524,7 @@ Private Function TryShowForm(ByVal formName As String, Optional ByRef openedForm
     ' Next, see if an instance is already loaded and show it.
     Dim loaded As Object
     For Each loaded In VBA.UserForms
-        If StrComp(loaded.Name, formName, vbTextCompare) = 0 Then
+        If StrComp(loaded.name, formName, vbTextCompare) = 0 Then
             loaded.Show vbModeless
             If Not contextForm Is Nothing Then ApplyContextToFormSafe loaded, contextForm
             Set openedForm = loaded
@@ -1553,7 +1539,7 @@ Private Function TryShowForm(ByVal formName As String, Optional ByRef openedForm
     If Err.Number = 0 Then
         ' Attempt to capture the instance that was shown via Application.Run.
         For Each loaded In VBA.UserForms
-            If StrComp(loaded.Name, formName, vbTextCompare) = 0 Then
+            If StrComp(loaded.name, formName, vbTextCompare) = 0 Then
                 If Not contextForm Is Nothing Then ApplyContextToFormSafe loaded, contextForm
                 Set openedForm = loaded
                 Exit For
@@ -1584,7 +1570,7 @@ Private Sub SaveProblemEntries(ByVal ws As Worksheet, ByVal targetCol As Long)
         If ControlExists(labelName) And ControlExists(textName) Then
             With Me.Controls(labelName)
                 If .Visible And Trim$(.Caption) <> "" Then
-                    filledValues(.Caption) = Me.Controls(textName).Value
+                    filledValues(.Caption) = Me.Controls(textName).value
                 End If
             End With
         End If
@@ -1600,7 +1586,7 @@ Private Sub SaveProblemEntries(ByVal ws As Worksheet, ByVal targetCol As Long)
         probLabel = allLabels(idx)
 
         Dim valueToWrite As String
-        If filledValues.Exists(probLabel) Then
+        If filledValues.exists(probLabel) Then
             valueToWrite = filledValues(probLabel)
         Else
             valueToWrite = ""
@@ -1619,7 +1605,7 @@ Private Function GetAllProblemLabels() As Variant
     lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
 
     Dim lastRow As Long
-    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).row
 
     Dim dict As Object
     Set dict = CreateObject("Scripting.Dictionary")
@@ -1628,9 +1614,9 @@ Private Function GetAllProblemLabels() As Variant
     For col = 1 To lastCol
         For rowIndex = 4 To lastRow
             Dim probValue As String
-            probValue = Trim$(ws.Cells(rowIndex, col).Value)
+            probValue = Trim$(ws.Cells(rowIndex, col).value)
             If probValue <> "" Then
-                If Not dict.Exists(probValue) Then dict.Add probValue, True
+                If Not dict.exists(probValue) Then dict.Add probValue, True
             End If
         Next rowIndex
     Next col
@@ -1679,7 +1665,7 @@ Private Sub TextBoxPlan_Change()
     UpdateHourlyPlan
     UpdateHourlyActuals
     UpdateProblems
-    SetAppStateValue "Plan", Trim$(Me.TextBoxPlan.Value)
+    SetAppStateValue "Plan", Trim$(Me.TextBoxPlan.value)
     RefreshSharedContext Me
 End Sub
 
@@ -1690,12 +1676,12 @@ Private Sub UpdateHourlyPlan()
     Dim hourlyPlan As Long
     Dim idx As Long
 
-    If Trim$(Me.TextBoxPlan.Value) = "" Or Not IsNumeric(Me.TextBoxPlan.Value) Then
+    If Trim$(Me.TextBoxPlan.value) = "" Or Not IsNumeric(Me.TextBoxPlan.value) Then
         ClearHourlyPlan
         Exit Sub
     End If
 
-    totalPlan = CDbl(Me.TextBoxPlan.Value)
+    totalPlan = CDbl(Me.TextBoxPlan.value)
     If totalPlan <= 0 Then
         ClearHourlyPlan
         Exit Sub
@@ -1704,7 +1690,7 @@ Private Sub UpdateHourlyPlan()
     hourlyPlan = CLng(Application.WorksheetFunction.RoundUp(totalPlan / 8, 0))
 
     For idx = 1 To 8
-        Me.Controls("TextBoxP" & idx).Value = CStr(hourlyPlan)
+        Me.Controls("TextBoxP" & idx).value = CStr(hourlyPlan)
     Next idx
 End Sub
 
@@ -1713,7 +1699,7 @@ End Sub
 Private Sub ClearHourlyPlan()
     Dim idx As Long
     For idx = 1 To 8
-        Me.Controls("TextBoxP" & idx).Value = ""
+        Me.Controls("TextBoxP" & idx).value = ""
     Next idx
     UpdateHourlyActuals
 End Sub
@@ -1735,15 +1721,15 @@ Private Sub UpdateHourlyActuals()
         Set actualBox = Me.Controls("TextBoxH" & idx)
         Set planBox = Me.Controls("TextBoxP" & idx)
 
-        If IsNumeric(actualBox.Value) Then
-            actualVal = CDbl(actualBox.Value)
+        If IsNumeric(actualBox.value) Then
+            actualVal = CDbl(actualBox.value)
             totalActual = totalActual + actualVal
         Else
             actualVal = 0
         End If
 
-        If IsNumeric(planBox.Value) And CDbl(planBox.Value) > 0 And IsNumeric(actualBox.Value) Then
-            planVal = CDbl(planBox.Value)
+        If IsNumeric(planBox.value) And CDbl(planBox.value) > 0 And IsNumeric(actualBox.value) Then
+            planVal = CDbl(planBox.value)
             If actualVal >= planVal Then
                 actualBox.BackColor = RGB(0, 176, 80)
             Else
@@ -1754,8 +1740,8 @@ Private Sub UpdateHourlyActuals()
         End If
     Next idx
 
-    Me.TextBoxSum.Value = CStr(totalActual)
-    SetAppStateValue "Suma", Me.TextBoxSum.Value
+    Me.TextBoxSum.value = CStr(totalActual)
+    SetAppStateValue "Suma", Me.TextBoxSum.value
 End Sub
 
 Private Sub TextBoxH1_Change()
@@ -1810,7 +1796,7 @@ Private Sub HideAllProblems()
 
         If ControlExists(textName) Then
             With Me.Controls(textName)
-                .Value = ""
+                .value = ""
                 .Visible = False
             End With
         End If
@@ -1823,7 +1809,7 @@ Private Sub UpdateProblems()
     HideAllProblems
 
     Dim linia As String
-    linia = Trim$(Me.ComboBoxLinia.Value)
+    linia = Trim$(Me.ComboBoxLinia.value)
     If linia = "" Then Exit Sub
 
     If mSelectedROST = "" Or mSelectedPrasaProces = "" Then Exit Sub
@@ -1835,20 +1821,20 @@ Private Sub UpdateProblems()
     lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
 
     Dim lastRow As Long
-    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).row
 
     Dim col As Long
     Dim filled As Long
 
     For col = 1 To lastCol
-        If Trim$(ws.Cells(1, col).Value) = linia _
-            And Trim$(ws.Cells(2, col).Value) = mSelectedPrasaProces _
-            And Trim$(ws.Cells(3, col).Value) = mSelectedROST Then
+        If Trim$(ws.Cells(1, col).value) = linia _
+            And Trim$(ws.Cells(2, col).value) = mSelectedPrasaProces _
+            And Trim$(ws.Cells(3, col).value) = mSelectedROST Then
 
             Dim rowIndex As Long
             For rowIndex = 4 To lastRow
                 Dim probValue As String
-                probValue = Trim$(ws.Cells(rowIndex, col).Value)
+                probValue = Trim$(ws.Cells(rowIndex, col).value)
                 If probValue <> "" Then
                     filled = filled + 1
                     If filled > 20 Then Exit For
@@ -1867,7 +1853,7 @@ Private Sub UpdateProblems()
 
                     If ControlExists(textName) Then
                         With Me.Controls(textName)
-                            .Value = ""
+                            .value = ""
                             .Visible = True
                         End With
                     End If
@@ -1883,18 +1869,18 @@ End Sub
 ' Finds (or creates) the row whose column A matches the given label.
 Private Function FindOrCreateRow(ByVal ws As Worksheet, ByVal label As String) As Long
     Dim lastRow As Long
-    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).row
 
     Dim rowIndex As Long
     For rowIndex = 1 To lastRow
-        If CStr(ws.Cells(rowIndex, 1).Value) = label Then
+        If CStr(ws.Cells(rowIndex, 1).value) = label Then
             FindOrCreateRow = rowIndex
             Exit Function
         End If
     Next rowIndex
 
     FindOrCreateRow = lastRow + 1
-    ws.Cells(FindOrCreateRow, 1).Value = label
+    ws.Cells(FindOrCreateRow, 1).value = label
 End Function
 
 ' Finds an existing row whose column A matches the given label.
@@ -1905,11 +1891,11 @@ Private Function FindRow(ByVal ws As Worksheet, ByVal label As String) As Long
     If normalized = "" Then Exit Function
 
     Dim lastRow As Long
-    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).row
 
     Dim rowIndex As Long
     For rowIndex = 1 To lastRow
-        If CStr(ws.Cells(rowIndex, 1).Value) = normalized Then
+        If CStr(ws.Cells(rowIndex, 1).value) = normalized Then
             FindRow = rowIndex
             Exit Function
         End If
@@ -1935,7 +1921,7 @@ Private Sub WriteField(ByVal ws As Worksheet, ByVal label As String, ByVal value
         colToUse = targetCol
     End If
 
-    ws.Cells(rowIndex, colToUse).Value = value
+    ws.Cells(rowIndex, colToUse).value = value
 End Sub
 
 ' Reads a stored value for the label from the specified column.
@@ -1948,7 +1934,7 @@ Private Function GetFieldValue(ByVal ws As Worksheet, ByVal label As String, _
 
     If rowIndex = 0 Then Exit Function
 
-    GetFieldValue = ws.Cells(rowIndex, targetCol).Value
+    GetFieldValue = ws.Cells(rowIndex, targetCol).value
 End Function
 
 ' Normalizes labels for column A by replacing spaces with underscores.
@@ -1982,3 +1968,255 @@ Private Function ToRangeName(ByVal label As String) As String
 
     ToRangeName = cleaned
 End Function
+' ============================================================
+'  AWARIE / POSTOJ - wszystko w UserForm1 (bez modułów)
+'  Źródło: cfg_awarie_long / tabela tblAwarie: (1)Linia (2)Maszyna (3)Opis
+'  Zapis: data -> zmiana1: G:N, zmiana2: P:W, zmiana3: Z:AG
+' ============================================================
+
+Private Const AW_SHEET As String = "cfg_awarie_long"
+Private Const AW_TABLE As String = "tblAwarie"
+
+' ---------- Zdarzenia kontrolek awarii (w UserForm1) ----------
+
+Private Sub CommandButtonPostoj_Click()
+    On Error GoTo EH
+
+    If Not ValidateRequiredInputs() Then Exit Sub
+
+    ' przełącz stronę multipage na awarie (jak masz)
+    ShowAwariePageOnMultiPage
+
+    ' zainicjuj listy awarii w tym samym UserForm1
+    Awarie_Init
+
+    Exit Sub
+EH:
+    MsgBox "Błąd otwarcia awarii: " & Err.Description, vbExclamation
+End Sub
+
+Private Sub cboA_Maszyna_Change()
+    Awarie_LoadAwarieForMaszyna Trim$(Me.cboA_Maszyna.value)
+End Sub
+
+Private Sub cmdA_Zapisz_Click()
+    Awarie_SavePostoj
+End Sub
+
+Private Sub cmdA_Wyczysc_Click()
+    Awarie_ClearFields
+End Sub
+
+' ---------- Główne procedury awarii ----------
+
+Private Sub Awarie_Init()
+    ' Ustal linię i zmianę z kontekstu głównego (u Ciebie jest mAppState)
+    Dim linia As String
+    linia = GetStateOrControl(Me, "Linia", "ComboBoxLinia")
+    If Trim$(linia) = "" Then
+        MsgBox "Brak wybranej linii w głównym formularzu.", vbExclamation
+        Exit Sub
+    End If
+
+    Awarie_ClearUI
+
+    ' Załaduj maszyny dla linii
+    Awarie_LoadMaszynyForLinia linia
+
+    ' Auto: jeśli jest pierwsza maszyna, załaduj awarie
+    If Me.cboA_Maszyna.ListCount > 0 Then
+        Me.cboA_Maszyna.ListIndex = 0
+        Awarie_LoadAwarieForMaszyna Trim$(Me.cboA_Maszyna.value)
+    End If
+End Sub
+
+Private Sub Awarie_ClearUI()
+    On Error Resume Next
+    Me.cboA_Maszyna.Clear
+    Me.lstA_Awarie.Clear
+    Me.lblA_Maszyna.Caption = vbNullString
+    Awarie_ClearFields
+    On Error GoTo 0
+End Sub
+
+Private Sub Awarie_ClearFields()
+    On Error Resume Next
+    Me.txtA_CzasMin.value = vbNullString
+    Me.txtA_Komentarz.value = vbNullString
+    Me.txtA_Uwagi.value = vbNullString
+    On Error GoTo 0
+End Sub
+
+Private Sub Awarie_LoadMaszynyForLinia(ByVal linia As String)
+    Dim lo As ListObject
+    Set lo = Awarie_GetTable()
+    If lo Is Nothing Then
+        MsgBox "Brak tabeli '" & AW_TABLE & "' w arkuszu '" & AW_SHEET & "'.", vbExclamation
+        Exit Sub
+    End If
+
+    Dim dict As Object
+    Set dict = CreateObject("Scripting.Dictionary")
+
+    Dim r As ListRow
+    For Each r In lo.ListRows
+        If Trim$(CStr(r.Range.Cells(1, 1).value)) = Trim$(linia) Then
+            Dim m As String
+            m = Trim$(CStr(r.Range.Cells(1, 2).value))
+            If m <> "" Then dict(m) = True
+        End If
+    Next r
+
+    Me.cboA_Maszyna.Clear
+
+    Dim k As Variant
+    For Each k In dict.Keys
+        Me.cboA_Maszyna.AddItem CStr(k)
+    Next k
+
+    If Me.cboA_Maszyna.ListCount = 0 Then
+        MsgBox "Brak maszyn dla linii '" & linia & "' w tabeli '" & AW_TABLE & "'.", vbExclamation
+    End If
+End Sub
+
+Private Sub Awarie_LoadAwarieForMaszyna(ByVal maszyna As String)
+    Me.lstA_Awarie.Clear
+    Me.lblA_Maszyna.Caption = maszyna
+
+    Dim linia As String
+    linia = GetStateOrControl(Me, "Linia", "ComboBoxLinia")
+
+    If Trim$(linia) = "" Or Trim$(maszyna) = "" Then Exit Sub
+
+    Dim lo As ListObject
+    Set lo = Awarie_GetTable()
+    If lo Is Nothing Then Exit Sub
+
+    Dim r As ListRow
+    For Each r In lo.ListRows
+        If Trim$(CStr(r.Range.Cells(1, 1).value)) = Trim$(linia) _
+           And Trim$(CStr(r.Range.Cells(1, 2).value)) = Trim$(maszyna) Then
+
+            Dim opis As String
+            opis = Trim$(CStr(r.Range.Cells(1, 3).value))
+            If opis <> "" Then Me.lstA_Awarie.AddItem opis
+        End If
+    Next r
+
+    If Me.lstA_Awarie.ListCount > 0 Then Me.lstA_Awarie.ListIndex = 0
+End Sub
+
+Private Sub Awarie_SavePostoj()
+    On Error GoTo EH
+
+    Dim linia As String, maszyna As String, opis As String
+    Dim czasMin As Double
+
+    linia = Trim$(GetStateOrControl(Me, "Linia", "ComboBoxLinia"))
+    maszyna = Trim$(Me.cboA_Maszyna.value)
+
+    If Me.lstA_Awarie.ListIndex >= 0 Then
+        opis = CStr(Me.lstA_Awarie.List(Me.lstA_Awarie.ListIndex))
+    Else
+        opis = ""
+    End If
+
+    If linia = "" Then
+        MsgBox "Brak linii.", vbExclamation
+        Exit Sub
+    End If
+    If maszyna = "" Then
+        MsgBox "Wybierz maszynę.", vbExclamation
+        Exit Sub
+    End If
+    If opis = "" Then
+        MsgBox "Wybierz awarię/postój.", vbExclamation
+        Exit Sub
+    End If
+
+    Dim rawCzas As String
+    rawCzas = Replace(Trim$(Me.txtA_CzasMin.value), ",", ".")
+    If rawCzas = "" Or Not IsNumeric(rawCzas) Then
+        MsgBox "Podaj czas postoju w minutach (liczba).", vbExclamation
+        Exit Sub
+    End If
+    czasMin = CDbl(rawCzas)
+    If czasMin <= 0 Then
+        MsgBox "Czas postoju musi być > 0.", vbExclamation
+        Exit Sub
+    End If
+
+    Dim wsD As Worksheet
+    Set wsD = TryGetWorksheet("data")
+    If wsD Is Nothing Then
+        MsgBox "Brak arkusza 'data'.", vbExclamation
+        Exit Sub
+    End If
+
+    ' start kolumny wg zmiany (1->G, 2->P, 3->Z)
+    Dim shiftVal As Long
+    shiftVal = CLng(val(GetStateOrControl(Me, "Zmiana", "ComboBoxZmiana")))
+    If shiftVal < 1 Or shiftVal > 3 Then
+        MsgBox "Wybierz zmianę 1/2/3 w głównym formularzu.", vbExclamation
+        Exit Sub
+    End If
+
+    Dim startCol As Long
+    Select Case shiftVal
+        Case 1: startCol = wsD.Columns("G").Column ' 7
+        Case 2: startCol = wsD.Columns("P").Column ' 16
+        Case 3: startCol = wsD.Columns("Z").Column ' 26
+    End Select
+
+    ' gdzie wstawiamy (pierwszy pusty w startCol od wiersza 2)
+    Dim targetRow As Long
+    targetRow = wsD.Cells(wsD.Rows.Count, startCol).End(xlUp).row
+    If targetRow < 2 Then
+        targetRow = 2
+    ElseIf Trim$(CStr(wsD.Cells(2, startCol).value)) = "" Then
+        targetRow = 2
+    Else
+        targetRow = targetRow + 1
+    End If
+
+    ' czasy
+    Const MINUTES_PER_DAY As Double = 24# * 60#
+    Dim dtEnd As Date, dtStart As Date
+    dtEnd = Now
+    dtStart = dtEnd - (czasMin / MINUTES_PER_DAY)
+
+    ' zapis układem zgodnym z Twoim CopyAlarmValues (8 kolumn: startCol..startCol+7)
+    With wsD
+        .Cells(targetRow, startCol + 0).value = dtStart                 ' G/P/Z
+        .Cells(targetRow, startCol + 1).value = dtEnd                   ' H/Q/AA
+        .Cells(targetRow, startCol + 2).value = linia                   ' I/R/AB
+        .Cells(targetRow, startCol + 3).value = maszyna                 ' J/S/AC
+        .Cells(targetRow, startCol + 4).value = czasMin                 ' K/T/AD
+        .Cells(targetRow, startCol + 5).value = opis                    ' L/U/AE
+        .Cells(targetRow, startCol + 6).value = Trim$(Me.txtA_Komentarz.value) ' M/V/AF
+        .Cells(targetRow, startCol + 7).value = Trim$(Me.txtA_Uwagi.value)     ' N/W/AG
+    End With
+
+    MsgBox "Zapisano postój (wiersz " & targetRow & ").", vbInformation
+    Awarie_ClearFields
+    Exit Sub
+
+EH:
+    MsgBox "Błąd zapisu postoju: " & Err.Description, vbExclamation
+End Sub
+
+' ---------- Tabela cfg_awarie_long / tblAwarie ----------
+
+Private Function Awarie_GetTable() As ListObject
+    On Error GoTo EH
+    Dim ws As Worksheet
+    Set ws = TryGetWorksheet(AW_SHEET)
+    If ws Is Nothing Then Exit Function
+
+    Set Awarie_GetTable = ws.ListObjects(AW_TABLE)
+    Exit Function
+EH:
+    Set Awarie_GetTable = Nothing
+End Function
+
+
