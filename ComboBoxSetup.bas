@@ -6,6 +6,7 @@ Private mHasPrasa As Boolean
 Private mHasProces As Boolean
 Private mSelectedROST As String
 Private mSelectedPrasaProces As String
+Private mSharedContext As Object
 
 ' Initializes ComboBoxLinia with line headers from row 1 of the cfg_projekt sheet
 ' and loads ComboBoxProjekt with the projects under the currently selected line.
@@ -16,6 +17,8 @@ Private Sub UserForm_Initialize()
         InitializeBrygadaIZmiana
         HideAllProblems
     End If
+
+    RefreshSharedContext Me
 End Sub
 
 ' Shows the form modelessly so Excel stays interactive.
@@ -59,6 +62,8 @@ Private Sub InitializeLiniaIProjekty()
         LoadOperatorsForLine cboLinia.Value
         UpdateButtonVisibility
     End If
+
+    RefreshSharedContext Me
 
 ExitInit:
 End Sub
@@ -115,12 +120,14 @@ Private Sub ComboBoxLinia_Change()
     LoadOperatorsForLine Me.ComboBoxLinia.Value
     UpdateButtonVisibility
     HideAllProblems
+    RefreshSharedContext Me
 End Sub
 
 ' Refreshes button visibility based on the selected line and project.
 Private Sub ComboBoxProjekt_Change()
     UpdateButtonVisibility
     HideAllProblems
+    RefreshSharedContext Me
 End Sub
 
 ' Resets all process buttons to hidden and default styling.
@@ -260,6 +267,7 @@ End Sub
 ' Refreshes the dependent ComboBoxBoxyOp list whenever operator fields change.
 Private Sub RefreshBoxyOp()
     PopulateBoxOperatorList Me, Me
+    RefreshSharedContext Me
 End Sub
 
 Private Sub ComboBoxOp1_Change(): RefreshBoxyOp: End Sub
@@ -271,6 +279,15 @@ Private Sub TextBoxOp1_Change(): RefreshBoxyOp: End Sub
 Private Sub TextBoxOp2_Change(): RefreshBoxyOp: End Sub
 Private Sub TextBoxOp3_Change(): RefreshBoxyOp: End Sub
 Private Sub TextBoxOp4_Change(): RefreshBoxyOp: End Sub
+
+' Rebuilds the shared context whenever operator fields are updated.
+Private Sub ComboBoxBrygada_Change()
+    RefreshSharedContext Me
+End Sub
+
+Private Sub ComboBoxZmiana_Change()
+    RefreshSharedContext Me
+End Sub
 
 ' Collects operators from ComboBoxOp1-Op4 and TextBoxOp1-Op4 without duplicates.
 Private Function CollectOperatorNames(Optional ByVal sourceForm As Object = Nothing) As Object
@@ -433,6 +450,7 @@ Private Sub HighlightROST(ByVal selectedButton As MSForms.CommandButton)
     ResetButtonStyle Me.CommandButtonRO
     ResetButtonStyle Me.CommandButtonST
     selectedButton.BackColor = RGB(0, 176, 80)
+    RefreshSharedContext Me
 End Sub
 
 ' Highlights within the Prasa/Proces pair without clearing RO/ST selection.
@@ -440,6 +458,7 @@ Private Sub HighlightPrasaProces(ByVal selectedButton As MSForms.CommandButton)
     ResetButtonStyle Me.CommandButtonPrasa
     ResetButtonStyle Me.CommandButtonProces
     selectedButton.BackColor = RGB(0, 176, 80)
+    RefreshSharedContext Me
 End Sub
 
 ' Validates the date entered in TextBoxDay using the DD.MM.RRRR format.
@@ -488,9 +507,16 @@ End Sub
 
 ' Returns a normalized date value (dd.mm.yyyy) when TextBoxDay contains a valid
 ' date, or an empty string otherwise.
-Private Function GetValidatedDayValue() As String
+Private Function GetValidatedDayValue(Optional ByVal sourceForm As Object = Nothing) As String
+    Dim formObj As Object
+    If sourceForm Is Nothing Then
+        Set formObj = Me
+    Else
+        Set formObj = sourceForm
+    End If
+
     Dim rawValue As String
-    rawValue = Trim$(GetTextIfExists(Me, "TextBoxDay"))
+    rawValue = Trim$(GetTextIfExists(formObj, "TextBoxDay"))
 
     If rawValue = "" Then Exit Function
     If Not rawValue Like "##.##.####" Then Exit Function
@@ -518,6 +544,95 @@ Private Function GetValidatedDayValue() As String
 
 InvalidDate:
     GetValidatedDayValue = ""
+End Function
+
+' Keeps a shared snapshot of the main form so other user forms can read the latest
+' entries while UserForm1 stays open.
+Public Sub RefreshSharedContext(ByVal sourceForm As Object)
+    If sourceForm Is Nothing Then Exit Sub
+
+    Set mSharedContext = CreateObject("Scripting.Dictionary")
+
+    mSharedContext("Linia") = Trim$(GetTextIfExists(sourceForm, "ComboBoxLinia"))
+    mSharedContext("Projekt") = Trim$(GetTextIfExists(sourceForm, "ComboBoxProjekt"))
+    mSharedContext("Brygada") = Trim$(GetTextIfExists(sourceForm, "ComboBoxBrygada"))
+    mSharedContext("Zmiana") = Trim$(GetTextIfExists(sourceForm, "ComboBoxZmiana"))
+    mSharedContext("Data") = GetValidatedDayValue(sourceForm)
+
+    Dim ops As Object
+    Set ops = CollectOperatorNames(sourceForm)
+    mSharedContext("Operatorzy") = ops
+
+    mSharedContext("ROST") = mSelectedROST
+    mSharedContext("PrasaProces") = mSelectedPrasaProces
+
+    Dim planVal As String
+    planVal = Trim$(GetTextIfExists(sourceForm, "TextBoxPlan"))
+    mSharedContext("Plan") = planVal
+
+    Dim sumVal As String
+    sumVal = Trim$(GetTextIfExists(sourceForm, "TextBoxSum"))
+    mSharedContext("Suma") = sumVal
+End Sub
+
+' Applies the shared context to any form that exposes matching controls.
+Public Sub ApplySharedContext(ByVal targetForm As Object)
+    If targetForm Is Nothing Then Exit Sub
+    If mSharedContext Is Nothing Then Exit Sub
+
+    SafeSetCombo targetForm, "ComboBoxLinia", GetSharedValue("Linia")
+    SafeSetCombo targetForm, "ComboBoxProjekt", GetSharedValue("Projekt")
+    SafeSetCombo targetForm, "ComboBoxBrygada", GetSharedValue("Brygada")
+    SafeSetCombo targetForm, "ComboBoxZmiana", GetSharedValue("Zmiana"))
+    SetTextIfExists targetForm, "TextBoxDay", GetSharedValue("Data")
+
+    PopulateBoxOperatorListFromContext targetForm
+End Sub
+
+Private Sub PopulateBoxOperatorListFromContext(ByVal targetForm As Object)
+    If targetForm Is Nothing Then Exit Sub
+    If mSharedContext Is Nothing Then Exit Sub
+    If Not mSharedContext.Exists("Operatorzy") Then Exit Sub
+
+    Dim ops As Object
+    Set ops = mSharedContext("Operatorzy")
+    If ops Is Nothing Then Exit Sub
+
+    Dim combo As MSForms.ComboBox
+    Set combo = GetComboOnForm(targetForm, "ComboBoxBoxyOp")
+    If combo Is Nothing Then Exit Sub
+
+    combo.Clear
+    Dim key As Variant
+    For Each key In ops.Keys
+        combo.AddItem CStr(key)
+    Next key
+    If combo.ListCount > 0 Then combo.Value = combo.List(0)
+End Sub
+
+Private Sub SafeSetCombo(ByVal targetForm As Object, ByVal controlName As String, ByVal newValue As String)
+    If targetForm Is Nothing Then Exit Sub
+    If newValue = "" Then Exit Sub
+
+    Dim combo As MSForms.ComboBox
+    Set combo = GetComboOnForm(targetForm, controlName)
+    If combo Is Nothing Then Exit Sub
+
+    Dim idx As Long, exists As Boolean
+    For idx = 0 To combo.ListCount - 1
+        If StrComp(CStr(combo.List(idx)), newValue, vbTextCompare) = 0 Then
+            exists = True
+            Exit For
+        End If
+    Next idx
+    If Not exists Then combo.AddItem newValue
+    combo.Value = newValue
+End Sub
+
+Private Function GetSharedValue(ByVal key As String) As String
+    If mSharedContext Is Nothing Then Exit Function
+    If Not mSharedContext.Exists(key) Then Exit Function
+    GetSharedValue = CStr(mSharedContext(key))
 End Function
 
 ' Safely checks for the presence of a control by name on the form.
@@ -643,10 +758,10 @@ Private Sub CommandButtonPostoj_Click()
     If Not ValidateRequiredInputs() Then Exit Sub
 
     Dim frm As Object
-    If Not TryShowForm("UserFormAwarie", frm) Then
-        MsgBox "Nie można otworzyć formularza UserFormAwarie.", vbExclamation
+    If TryShowForm("UserFormAwarie", frm, Me) Then
+        ApplyContextToFormSafe frm, Me
     Else
-        ApplyContextToForm frm
+        MsgBox "Nie można otworzyć formularza UserFormAwarie.", vbExclamation
     End If
     Exit Sub
 
@@ -1167,6 +1282,29 @@ Private Sub ApplyContextToForm(ByVal targetForm As Object)
     InitializeBoxForm targetForm
 End Sub
 
+' Safe context application that does not depend on the caller having the same controls.
+Private Sub ApplyContextToFormSafe(ByVal targetForm As Object, ByVal sourceForm As Object)
+    If targetForm Is Nothing Then Exit Sub
+    If sourceForm Is Nothing Then Exit Sub
+
+    Dim linia As String
+    Dim projekt As String
+
+    linia = Trim$(GetTextIfExists(sourceForm, "ComboBoxLinia"))
+    projekt = Trim$(GetTextIfExists(sourceForm, "ComboBoxProjekt"))
+
+    If linia <> "" Then SetComboValueIfExists targetForm, "ComboBoxLinia", linia
+    If projekt <> "" Then SetComboValueIfExists targetForm, "ComboBoxProjekt", projekt
+
+    PopulateBoxOperatorList targetForm, sourceForm
+    Dim planDate As String
+    planDate = GetValidatedDayValue(sourceForm)
+    If planDate <> "" Then SetTextIfExists targetForm, "TextBoxDay", planDate
+    Dim brygada As String
+    brygada = Trim$(GetTextIfExists(sourceForm, "ComboBoxBrygada"))
+    If brygada <> "" Then SetComboValueIfExists targetForm, "ComboBoxBrygada", brygada
+End Sub
+
 ' Sets a combo box value on another form, adding the item if it is not already present.
 Private Sub SetComboValueIfExists(ByVal targetForm As Object, ByVal controlName As String, ByVal value As String)
     If targetForm Is Nothing Then Exit Sub
@@ -1193,7 +1331,8 @@ Private Sub SetComboValueIfExists(ByVal targetForm As Object, ByVal controlName 
 End Sub
 
 ' Creates and shows a UserForm by name if it exists in the project. Returns True on success.
-Private Function TryShowForm(ByVal formName As String, Optional ByRef openedForm As Object) As Boolean
+Private Function TryShowForm(ByVal formName As String, Optional ByRef openedForm As Object, _
+                             Optional ByVal contextForm As Object = Nothing) As Boolean
     Dim frm As Object
     Set openedForm = Nothing
 
@@ -1202,6 +1341,7 @@ Private Function TryShowForm(ByVal formName As String, Optional ByRef openedForm
     Set frm = VBA.UserForms.Add(formName)
     If Err.Number = 0 And Not frm Is Nothing Then
         frm.Show vbModeless
+        If Not contextForm Is Nothing Then ApplyContextToFormSafe frm, contextForm
         Set openedForm = frm
         TryShowForm = True
         Exit Function
@@ -1215,6 +1355,7 @@ Private Function TryShowForm(ByVal formName As String, Optional ByRef openedForm
     For Each loaded In VBA.UserForms
         If StrComp(loaded.Name, formName, vbTextCompare) = 0 Then
             loaded.Show vbModeless
+            If Not contextForm Is Nothing Then ApplyContextToFormSafe loaded, contextForm
             Set openedForm = loaded
             TryShowForm = True
             Exit Function
@@ -1228,6 +1369,7 @@ Private Function TryShowForm(ByVal formName As String, Optional ByRef openedForm
         ' Attempt to capture the instance that was shown via Application.Run.
         For Each loaded In VBA.UserForms
             If StrComp(loaded.Name, formName, vbTextCompare) = 0 Then
+                If Not contextForm Is Nothing Then ApplyContextToFormSafe loaded, contextForm
                 Set openedForm = loaded
                 Exit For
             End If
@@ -1343,6 +1485,7 @@ End Sub
 
 Private Sub TextBoxDay_Change()
     ValidateDayInput
+    RefreshSharedContext Me
 End Sub
 
 Private Sub TextBoxPlan_Change()
