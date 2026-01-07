@@ -609,6 +609,7 @@ End Function
 Private Sub ClearVerticalRange(ByVal rng As Range, ByVal depth As Long)
     Dim anchor As Range
     Dim i As Long
+    Dim cellToClear As Range
 
     Set anchor = TopLeftCell(rng)
     If anchor Is Nothing Then Exit Sub
@@ -616,7 +617,10 @@ Private Sub ClearVerticalRange(ByVal rng As Range, ByVal depth As Long)
     If depth < 1 Then depth = 1
 
     For i = 0 To depth - 1
-        anchor.Offset(i, 0).ClearContents
+        Set cellToClear = TopLeftCell(anchor.Offset(i, 0))
+        If Not cellToClear Is Nothing Then
+            cellToClear.ClearContents
+        End If
     Next i
 End Sub
 
@@ -753,8 +757,12 @@ Private Sub CopyAlarmValues(ByVal wsData As Worksheet, ByVal wsReport As Workshe
             sourceCol = SafeGetLong(sourceCols, colIndex)
 
             If Not anchorCell Is Nothing And sourceCol > 0 Then
-                anchorCell.Offset(entryIndex - 1, 0).Value = _
-                    wsData.Cells(rowIndex, sourceCol).Value
+                Dim targetCell As Range
+                Set targetCell = TopLeftCell(anchorCell.Offset(entryIndex - 1, 0))
+
+                If Not targetCell Is Nothing Then
+                    targetCell.Value = wsData.Cells(rowIndex, sourceCol).Value
+                End If
             End If
         Next colIndex
     Next entryIndex
