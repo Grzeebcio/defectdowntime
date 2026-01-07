@@ -596,6 +596,30 @@ Private Function SafeGetRange(ByVal ranges As Collection, ByVal index As Long) A
     On Error GoTo 0
 End Function
 
+Private Function TopLeftCell(ByVal rng As Range) As Range
+    If rng Is Nothing Then Exit Function
+
+    If rng.MergeCells Then
+        Set TopLeftCell = rng.MergeArea.Cells(1, 1)
+    Else
+        Set TopLeftCell = rng.Cells(1, 1)
+    End If
+End Function
+
+Private Sub ClearVerticalRange(ByVal rng As Range, ByVal depth As Long)
+    Dim anchor As Range
+    Dim i As Long
+
+    Set anchor = TopLeftCell(rng)
+    If anchor Is Nothing Then Exit Sub
+
+    If depth < 1 Then depth = 1
+
+    For i = 0 To depth - 1
+        anchor.Offset(i, 0).ClearContents
+    Next i
+End Sub
+
 Private Function SafeGetLong(ByVal values As Collection, ByVal index As Long) As Long
     On Error Resume Next
 
@@ -638,6 +662,7 @@ Private Sub CopyAlarmValues(ByVal wsData As Worksheet, ByVal wsReport As Workshe
     Dim header As String
     Dim rangeName As String
     Dim targetRange As Range
+    Dim anchorCell As Range
     Dim sourceCol As Long
 
     Dim headers As Collection
@@ -701,7 +726,7 @@ Private Sub CopyAlarmValues(ByVal wsData As Worksheet, ByVal wsReport As Workshe
         For colIndex = 1 To headerCount
             Set targetRange = SafeGetRange(targetRanges, colIndex)
             If Not targetRange Is Nothing Then
-                targetRange.Resize(clearDepth, 1).ClearContents
+                ClearVerticalRange targetRange, clearDepth
             End If
         Next colIndex
         Exit Sub
@@ -714,7 +739,7 @@ Private Sub CopyAlarmValues(ByVal wsData As Worksheet, ByVal wsReport As Workshe
     For colIndex = 1 To headerCount
         Set targetRange = SafeGetRange(targetRanges, colIndex)
         If Not targetRange Is Nothing Then
-            targetRange.Resize(maxDepth, 1).ClearContents
+            ClearVerticalRange targetRange, maxDepth
         End If
     Next colIndex
 
@@ -724,12 +749,12 @@ Private Sub CopyAlarmValues(ByVal wsData As Worksheet, ByVal wsReport As Workshe
 
         For colIndex = 1 To headerCount
             Set targetRange = SafeGetRange(targetRanges, colIndex)
+            Set anchorCell = TopLeftCell(targetRange)
             sourceCol = SafeGetLong(sourceCols, colIndex)
 
-            If Not targetRange Is Nothing And sourceCol > 0 Then
-                wsReport.Cells(targetRange.Row + (entryIndex - 1), _
-                               targetRange.Column).Value = _
-                               wsData.Cells(rowIndex, sourceCol).Value
+            If Not anchorCell Is Nothing And sourceCol > 0 Then
+                anchorCell.Offset(entryIndex - 1, 0).Value = _
+                    wsData.Cells(rowIndex, sourceCol).Value
             End If
         Next colIndex
     Next entryIndex
