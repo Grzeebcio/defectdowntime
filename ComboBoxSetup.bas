@@ -883,7 +883,7 @@ Private Sub AppendMainEntryToDataAK()
     ws.Cells(targetRow, startCol + 9).Value = Trim$(Me.ComboBoxOp3.Value)         ' AT Op3
     ws.Cells(targetRow, startCol + 10).Value = Trim$(Me.ComboBoxOp4.Value)        ' AU Op4
 
-    ws.Cells(targetRow, startCol + 11).Value = Trim$(Me.TextBoxPlan.Value)        ' AV Plan
+    ws.Cells(targetRow, startCol + 11).Value = Trim$(GetTextIfExists(Me, "TextBoxboxilosc1")) ' AV Ilość box (stan)
     ws.Cells(targetRow, startCol + 12).Value = Trim$(Me.TextBoxSum.Value)         ' AW Realizacja
 End Sub
 
