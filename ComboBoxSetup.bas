@@ -257,6 +257,99 @@ Private Sub SetComboOptions(ByVal comboBox As MSForms.ComboBox, ByVal operators 
     Next idx
 End Sub
 
+' Collects operators from ComboBoxOp1-Op4 and TextBoxOp1-Op4 without duplicates.
+Private Function CollectOperatorNames() As Object
+    Dim dict As Object
+    Set dict = CreateObject("Scripting.Dictionary")
+
+    AddOperatorValue dict, GetTextIfExists(Me, "ComboBoxOp1")
+    AddOperatorValue dict, GetTextIfExists(Me, "ComboBoxOp2")
+    AddOperatorValue dict, GetTextIfExists(Me, "ComboBoxOp3")
+    AddOperatorValue dict, GetTextIfExists(Me, "ComboBoxOp4")
+
+    AddOperatorValue dict, GetTextIfExists(Me, "TextBoxOp1")
+    AddOperatorValue dict, GetTextIfExists(Me, "TextBoxOp2")
+    AddOperatorValue dict, GetTextIfExists(Me, "TextBoxOp3")
+    AddOperatorValue dict, GetTextIfExists(Me, "TextBoxOp4")
+
+    Set CollectOperatorNames = dict
+End Function
+
+' Adds a single operator value to a dictionary when it is non-empty.
+Private Sub AddOperatorValue(ByVal dict As Object, ByVal rawValue As String)
+    Dim name As String
+    name = Trim$(rawValue)
+
+    If name = "" Then Exit Sub
+    If dict.Exists(name) Then Exit Sub
+
+    dict.Add name, True
+End Sub
+
+' Populates ComboBoxBoxyOp on another form with the gathered operators.
+Public Sub PopulateBoxOperatorList(ByVal targetForm As Object)
+    If targetForm Is Nothing Then Exit Sub
+
+    Dim dict As Object
+    Set dict = CollectOperatorNames()
+
+    Dim cbo As MSForms.ComboBox
+    Set cbo = GetComboOnForm(targetForm, "ComboBoxBoxyOp")
+    If cbo Is Nothing Then Exit Sub
+
+    cbo.Clear
+
+    Dim key As Variant
+    For Each key In dict.Keys
+        cbo.AddItem CStr(key)
+    Next key
+
+    If cbo.ListCount > 0 Then cbo.Value = cbo.List(0)
+End Sub
+
+' Saves box data (date, operator, box number, current and added quantities) to the
+' "data" sheet starting at row 2, column AK and moving right.
+Public Sub SaveBoxEntry(ByVal sourceForm As Object)
+    Dim ws As Worksheet
+    Set ws = TryGetWorksheet("data")
+    If ws Is Nothing Then
+        MsgBox "Brak arkusza 'data'.", vbExclamation
+        Exit Sub
+    End If
+
+    Dim planDate As String
+    planDate = Trim$(GetTextIfExists(Me, "TextBoxDay"))
+    If planDate = "" Then planDate = Trim$(GetTextIfExists(sourceForm, "TextBoxDay"))
+
+    Dim operatorName As String
+    operatorName = Trim$(GetTextIfExists(sourceForm, "ComboBoxBoxyOp"))
+
+    Dim boxNumber As String
+    boxNumber = Trim$(GetTextIfExists(sourceForm, "TextBoxbox1"))
+
+    Dim qtyCurrent As String
+    qtyCurrent = Trim$(GetTextIfExists(sourceForm, "TextBoxboxilosc1"))
+
+    Dim qtyAdded As String
+    qtyAdded = Trim$(GetTextIfExists(sourceForm, "TextBoxboxilosc2"))
+
+    If planDate = "" Or operatorName = "" Or boxNumber = "" Or _
+       qtyCurrent = "" Or qtyAdded = "" Then
+        MsgBox "Uzupełnij datę, operatora, numer boxa oraz ilości przed zapisem.", _
+               vbExclamation
+        Exit Sub
+    End If
+
+    Dim startCol As Long
+    startCol = ws.Columns("AK").Column
+
+    ws.Cells(2, startCol).Value = planDate
+    ws.Cells(2, startCol + 1).Value = operatorName
+    ws.Cells(2, startCol + 2).Value = boxNumber
+    ws.Cells(2, startCol + 3).Value = qtyCurrent
+    ws.Cells(2, startCol + 4).Value = qtyAdded
+End Sub
+
 ' Restores default appearance for a button.
 Private Sub ResetButtonStyle(ByVal btn As MSForms.CommandButton)
     btn.BackColor = vbButtonFace
@@ -329,6 +422,21 @@ Private Function ControlExists(ByVal controlName As String) As Boolean
     Err.Clear
 End Function
 
+' Safely retrieves the text value from a control on a given form when present.
+Private Function GetTextIfExists(ByVal formObj As Object, ByVal controlName As String) As String
+    On Error Resume Next
+    Dim ctrl As Object
+    Set ctrl = formObj.Controls(controlName)
+
+    If Err.Number = 0 Then
+        GetTextIfExists = CStr(ctrl.Value)
+    Else
+        Err.Clear
+    End If
+
+    On Error GoTo 0
+End Function
+
 ' Safely returns a ComboBox control when it exists and is the right type.
 Private Function GetComboIfExists(ByVal controlName As String) As MSForms.ComboBox
     On Error Resume Next
@@ -342,6 +450,20 @@ Private Function GetComboIfExists(ByVal controlName As String) As MSForms.ComboB
     If TypeOf ctrl Is MSForms.ComboBox Then
         Set GetComboIfExists = ctrl
     End If
+End Function
+
+' Returns a ComboBox from another form when it exists and is the right type.
+Private Function GetComboOnForm(ByVal formObj As Object, ByVal controlName As String) As MSForms.ComboBox
+    On Error Resume Next
+    Dim ctrl As Object
+    Set ctrl = formObj.Controls(controlName)
+    If Err.Number = 0 Then
+        If TypeOf ctrl Is MSForms.ComboBox Then Set GetComboOnForm = ctrl
+    Else
+        Err.Clear
+    End If
+
+    On Error GoTo 0
 End Function
 
 ' Returns a worksheet when it exists; otherwise returns Nothing without raising.
