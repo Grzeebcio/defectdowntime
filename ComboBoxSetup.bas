@@ -22,6 +22,9 @@ End Sub
 
 ' Fills the line and project combo boxes when the form opens.
 Private Sub InitializeLiniaIProjekty()
+    If Not ControlExists("ComboBoxLinia") Then Exit Sub
+    If Not ControlExists("ComboBoxProjekt") Then Exit Sub
+
     Dim ws As Worksheet
     Set ws = TryGetWorksheet("cfg_projekt")
     If ws Is Nothing Then Exit Sub
