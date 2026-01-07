@@ -481,6 +481,40 @@ InvalidDate:
     Me.TextBoxDay.BackColor = RGB(255, 0, 0)
 End Sub
 
+' Returns a normalized date value (dd.mm.yyyy) when TextBoxDay contains a valid
+' date, or an empty string otherwise.
+Private Function GetValidatedDayValue() As String
+    Dim rawValue As String
+    rawValue = Trim$(GetTextIfExists(Me, "TextBoxDay"))
+
+    If rawValue = "" Then Exit Function
+    If Not rawValue Like "##.##.####" Then Exit Function
+
+    Dim parts() As String
+    parts = Split(rawValue, ".")
+    If UBound(parts) <> 2 Then Exit Function
+
+    On Error GoTo InvalidDate
+    Dim dayPart As Integer
+    Dim monthPart As Integer
+    Dim yearPart As Integer
+    Dim parsedDate As Date
+
+    dayPart = CInt(parts(0))
+    monthPart = CInt(parts(1))
+    yearPart = CInt(parts(2))
+
+    parsedDate = DateSerial(yearPart, monthPart, dayPart)
+
+    If Format$(parsedDate, "dd.mm.yyyy") = rawValue Then
+        GetValidatedDayValue = rawValue
+        Exit Function
+    End If
+
+InvalidDate:
+    GetValidatedDayValue = ""
+End Function
+
 ' Safely checks for the presence of a control by name on the form.
 Private Function ControlExists(ByVal controlName As String) As Boolean
     On Error Resume Next
@@ -634,6 +668,13 @@ Private Sub SaveFormData()
     Dim targetCol As Long
     targetCol = 1 + shiftVal ' 1->B, 2->C, 3->D
 
+    Dim dayValue As String
+    dayValue = GetValidatedDayValue()
+    If dayValue = "" Then
+        MsgBox "Wprowadź poprawną datę (DD.MM.RRRR) przed zapisem.", vbExclamation
+        Exit Sub
+    End If
+
     If Not EnsureProcessSelections() Then Exit Sub
 
     ' Clear previous entries so each save starts from a clean slate.
@@ -641,7 +682,7 @@ Private Sub SaveFormData()
     ws.Columns("I").ClearContents
 
     ' Core identifiers and selections.
-    WriteField ws, "Data", Me.TextBoxDay.Value, targetCol
+    WriteField ws, "Data", dayValue, targetCol
     WriteField ws, "Linia", Me.ComboBoxLinia.Value, targetCol
     WriteField ws, "Projekt", Me.ComboBoxProjekt.Value, targetCol
     WriteField ws, "Brygada", Me.ComboBoxBrygada.Value, targetCol
@@ -682,10 +723,58 @@ Private Sub SaveFormData()
     End If
 End Sub
 
+' Appends a summary row to the AK+ log with the current shift context.
+Private Sub AppendMainEntryToDataAK()
+    Dim ws As Worksheet
+    Set ws = TryGetWorksheet("data")
+    If ws Is Nothing Then
+        MsgBox "Brak arkusza 'data'.", vbExclamation
+        Exit Sub
+    End If
+
+    Dim dayValue As String
+    dayValue = GetValidatedDayValue()
+    If dayValue = "" Then
+        MsgBox "Wprowadź poprawną datę (DD.MM.RRRR) przed zapisem.", vbExclamation
+        Exit Sub
+    End If
+
+    Dim startCol As Long
+    startCol = ws.Columns("AK").Column
+
+    Dim targetRow As Long
+    targetRow = ws.Cells(ws.Rows.Count, startCol).End(xlUp).Row
+    If targetRow < 2 Then
+        targetRow = 2
+    Else
+        targetRow = targetRow + 1
+    End If
+
+    ws.Cells(targetRow, startCol + 0).Value = dayValue                            ' AK Data
+    ws.Cells(targetRow, startCol + 1).Value = Trim$(Me.ComboBoxLinia.Value)       ' AL Linia
+    ws.Cells(targetRow, startCol + 2).Value = Trim$(Me.ComboBoxProjekt.Value)     ' AM Projekt
+    ws.Cells(targetRow, startCol + 3).Value = Trim$(Me.ComboBoxBrygada.Value)     ' AN Brygada
+    ws.Cells(targetRow, startCol + 4).Value = Trim$(Me.ComboBoxZmiana.Value)      ' AO Zmiana
+    ws.Cells(targetRow, startCol + 5).Value = mSelectedROST                       ' AP RO/ST
+    ws.Cells(targetRow, startCol + 6).Value = mSelectedPrasaProces                ' AQ Prasa/Proces
+
+    ws.Cells(targetRow, startCol + 7).Value = Trim$(Me.ComboBoxOp1.Value)         ' AR Op1
+    ws.Cells(targetRow, startCol + 8).Value = Trim$(Me.ComboBoxOp2.Value)         ' AS Op2
+    ws.Cells(targetRow, startCol + 9).Value = Trim$(Me.ComboBoxOp3.Value)         ' AT Op3
+    ws.Cells(targetRow, startCol + 10).Value = Trim$(Me.ComboBoxOp4.Value)        ' AU Op4
+
+    ws.Cells(targetRow, startCol + 11).Value = Trim$(Me.TextBoxPlan.Value)        ' AV Plan
+    ws.Cells(targetRow, startCol + 12).Value = Trim$(Me.TextBoxSum.Value)         ' AW Realizacja
+End Sub
+
 ' Verifies required selections and inputs before running save or downtime actions.
 Private Function ValidateRequiredInputs() As Boolean
     Dim missing As Collection
     Set missing = New Collection
+
+    Dim dayValue As String
+    dayValue = GetValidatedDayValue()
+    If dayValue = "" Then missing.Add "data"
 
     If Trim$(Me.ComboBoxLinia.Value) = "" Then missing.Add "linia"
     If Trim$(Me.ComboBoxProjekt.Value) = "" Then missing.Add "projekt"
