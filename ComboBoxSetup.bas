@@ -418,6 +418,11 @@ Public Sub SaveBoxEntryFromBoxForm(ByVal boxForm As Object)
     SaveBoxEntry boxForm, Me
 End Sub
 
+' Click handler for the dedicated "dodaj box" button to append a box entry.
+Public Sub CommandButtondodajbox_Click()
+    SaveBoxEntryFromBoxForm Me
+End Sub
+
 ' Restores default appearance for a button.
 Private Sub ResetButtonStyle(ByVal btn As MSForms.CommandButton)
     btn.BackColor = vbButtonFace
