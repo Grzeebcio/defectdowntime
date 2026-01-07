@@ -22,17 +22,19 @@ End Sub
 
 ' Fills the line and project combo boxes when the form opens.
 Private Sub InitializeLiniaIProjekty()
+    On Error GoTo ExitInit
+
     Dim cboLinia As MSForms.ComboBox
     Dim cboProjekt As MSForms.ComboBox
 
     Set cboLinia = GetComboIfExists("ComboBoxLinia")
     Set cboProjekt = GetComboIfExists("ComboBoxProjekt")
 
-    If cboLinia Is Nothing Or cboProjekt Is Nothing Then Exit Sub
+    If cboLinia Is Nothing Or cboProjekt Is Nothing Then GoTo ExitInit
 
     Dim ws As Worksheet
     Set ws = TryGetWorksheet("cfg_projekt")
-    If ws Is Nothing Then Exit Sub
+    If ws Is Nothing Then GoTo ExitInit
 
     Dim lastCol As Long
     lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
@@ -54,6 +56,8 @@ Private Sub InitializeLiniaIProjekty()
         LoadOperatorsForLine cboLinia.Value
         UpdateButtonVisibility
     End If
+
+ExitInit:
 End Sub
 
 ' Populates ComboBoxBrygada and ComboBoxZmiana with static choices.
@@ -382,10 +386,16 @@ Private Sub CommandButtonSave_Click()
 End Sub
 
 Private Sub CommandButtonPostoj_Click()
+    On Error GoTo PostojError
+
     If Not ValidateRequiredInputs() Then Exit Sub
     If Not TryShowForm("UserFormAwarie") Then
         MsgBox "Nie można otworzyć formularza UserFormAwarie.", vbExclamation
     End If
+    Exit Sub
+
+PostojError:
+    MsgBox "Nie można otworzyć formularza UserFormAwarie: " & Err.Description, vbExclamation
 End Sub
 
 ' Saves all form entries into the "data" sheet. Columns B, C, and D are cleared on
