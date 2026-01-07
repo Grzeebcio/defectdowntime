@@ -561,7 +561,7 @@ Public Sub RefreshSharedContext(ByVal sourceForm As Object)
 
     Dim ops As Object
     Set ops = CollectOperatorNames(sourceForm)
-    mSharedContext("Operatorzy") = ops
+    Set mSharedContext("Operatorzy") = ops
 
     mSharedContext("ROST") = mSelectedROST
     mSharedContext("PrasaProces") = mSelectedPrasaProces
@@ -583,7 +583,7 @@ Public Sub ApplySharedContext(ByVal targetForm As Object)
     SafeSetCombo targetForm, "ComboBoxLinia", GetSharedValue("Linia")
     SafeSetCombo targetForm, "ComboBoxProjekt", GetSharedValue("Projekt")
     SafeSetCombo targetForm, "ComboBoxBrygada", GetSharedValue("Brygada")
-    SafeSetCombo targetForm, "ComboBoxZmiana", GetSharedValue("Zmiana"))
+    SafeSetCombo targetForm, "ComboBoxZmiana", GetSharedValue("Zmiana")
     SetTextIfExists targetForm, "TextBoxDay", GetSharedValue("Data")
 
     PopulateBoxOperatorListFromContext targetForm
