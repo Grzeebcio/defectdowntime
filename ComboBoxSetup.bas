@@ -374,6 +374,10 @@ Public Sub SaveBoxEntry(ByVal sourceForm As Object, Optional ByVal sourceMainFor
     Dim operatorName As String
     operatorName = Trim$(GetTextIfExists(sourceForm, "ComboBoxBoxyOp"))
 
+    Dim brygada As String
+    brygada = Trim$(GetTextIfExists(contextForm, "ComboBoxBrygada"))
+    If brygada = "" Then brygada = Trim$(GetTextIfExists(sourceForm, "ComboBoxBrygada"))
+
     Dim boxNumber As String
     boxNumber = Trim$(GetTextIfExists(sourceForm, "TextBoxbox1"))
 
@@ -384,8 +388,8 @@ Public Sub SaveBoxEntry(ByVal sourceForm As Object, Optional ByVal sourceMainFor
     qtyAdded = Trim$(GetTextIfExists(sourceForm, "TextBoxboxilosc2"))
 
     If planDate = "" Or operatorName = "" Or boxNumber = "" Or _
-       qtyCurrent = "" Or qtyAdded = "" Then
-        MsgBox "Uzupełnij datę, operatora, numer boxa oraz ilości przed zapisem.", _
+       qtyCurrent = "" Or qtyAdded = "" Or brygada = "" Then
+        MsgBox "Uzupełnij datę, brygadę, operatora, numer boxa oraz ilości przed zapisem.", _
                vbExclamation
         Exit Sub
     End If
@@ -402,10 +406,11 @@ Public Sub SaveBoxEntry(ByVal sourceForm As Object, Optional ByVal sourceMainFor
     End If
 
     ws.Cells(targetRow, startCol).Value = planDate
-    ws.Cells(targetRow, startCol + 1).Value = operatorName
-    ws.Cells(targetRow, startCol + 2).Value = boxNumber
-    ws.Cells(targetRow, startCol + 3).Value = qtyCurrent
-    ws.Cells(targetRow, startCol + 4).Value = qtyAdded
+    ws.Cells(targetRow, startCol + 1).Value = brygada
+    ws.Cells(targetRow, startCol + 2).Value = operatorName
+    ws.Cells(targetRow, startCol + 3).Value = boxNumber
+    ws.Cells(targetRow, startCol + 4).Value = qtyCurrent
+    ws.Cells(targetRow, startCol + 5).Value = qtyAdded
 End Sub
 
 ' Convenience wrapper for box forms to call from their save buttons.
