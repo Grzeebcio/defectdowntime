@@ -22,8 +22,13 @@ End Sub
 
 ' Fills the line and project combo boxes when the form opens.
 Private Sub InitializeLiniaIProjekty()
-    If Not ControlExists("ComboBoxLinia") Then Exit Sub
-    If Not ControlExists("ComboBoxProjekt") Then Exit Sub
+    Dim cboLinia As MSForms.ComboBox
+    Dim cboProjekt As MSForms.ComboBox
+
+    Set cboLinia = GetComboIfExists("ComboBoxLinia")
+    Set cboProjekt = GetComboIfExists("ComboBoxProjekt")
+
+    If cboLinia Is Nothing Or cboProjekt Is Nothing Then Exit Sub
 
     Dim ws As Worksheet
     Set ws = TryGetWorksheet("cfg_projekt")
@@ -33,7 +38,7 @@ Private Sub InitializeLiniaIProjekty()
     lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
 
     Dim col As Long
-    With Me.ComboBoxLinia
+    With cboLinia
         .Clear
         For col = 1 To lastCol
             If Trim$(ws.Cells(1, col).Value) <> "" Then
@@ -43,10 +48,10 @@ Private Sub InitializeLiniaIProjekty()
     End With
 
     ' Preload projects for the first available line
-    If Me.ComboBoxLinia.ListCount > 0 Then
-        Me.ComboBoxLinia.Value = Me.ComboBoxLinia.List(0)
-        LoadProjectsForLine Me.ComboBoxLinia.Value
-        LoadOperatorsForLine Me.ComboBoxLinia.Value
+    If cboLinia.ListCount > 0 Then
+        cboLinia.Value = cboLinia.List(0)
+        LoadProjectsForLine cboLinia.Value
+        LoadOperatorsForLine cboLinia.Value
         UpdateButtonVisibility
     End If
 End Sub
@@ -311,6 +316,21 @@ Private Function ControlExists(ByVal controlName As String) As Boolean
     Set tmp = Me.Controls(controlName)
     ControlExists = (Err.Number = 0)
     Err.Clear
+End Function
+
+' Safely returns a ComboBox control when it exists and is the right type.
+Private Function GetComboIfExists(ByVal controlName As String) As MSForms.ComboBox
+    On Error Resume Next
+    Dim ctrl As Object
+    Set ctrl = Me.Controls(controlName)
+    If Err.Number <> 0 Then
+        Err.Clear
+        Exit Function
+    End If
+
+    If TypeOf ctrl Is MSForms.ComboBox Then
+        Set GetComboIfExists = ctrl
+    End If
 End Function
 
 ' Returns a worksheet when it exists; otherwise returns Nothing without raising.
