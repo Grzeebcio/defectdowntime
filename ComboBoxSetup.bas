@@ -257,6 +257,21 @@ Private Sub SetComboOptions(ByVal comboBox As MSForms.ComboBox, ByVal operators 
     Next idx
 End Sub
 
+' Refreshes the dependent ComboBoxBoxyOp list whenever operator fields change.
+Private Sub RefreshBoxyOp()
+    PopulateBoxOperatorList Me, Me
+End Sub
+
+Private Sub ComboBoxOp1_Change(): RefreshBoxyOp: End Sub
+Private Sub ComboBoxOp2_Change(): RefreshBoxyOp: End Sub
+Private Sub ComboBoxOp3_Change(): RefreshBoxyOp: End Sub
+Private Sub ComboBoxOp4_Change(): RefreshBoxyOp: End Sub
+
+Private Sub TextBoxOp1_Change(): RefreshBoxyOp: End Sub
+Private Sub TextBoxOp2_Change(): RefreshBoxyOp: End Sub
+Private Sub TextBoxOp3_Change(): RefreshBoxyOp: End Sub
+Private Sub TextBoxOp4_Change(): RefreshBoxyOp: End Sub
+
 ' Collects operators from ComboBoxOp1-Op4 and TextBoxOp1-Op4 without duplicates.
 Private Function CollectOperatorNames(Optional ByVal sourceForm As Object = Nothing) As Object
     Dim dict As Object
