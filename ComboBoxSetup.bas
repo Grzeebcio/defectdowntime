@@ -10,9 +10,12 @@ Private mSelectedPrasaProces As String
 ' Initializes ComboBoxLinia with line headers from row 1 of the cfg_projekt sheet
 ' and loads ComboBoxProjekt with the projects under the currently selected line.
 Private Sub UserForm_Initialize()
-    InitializeLiniaIProjekty
-    InitializeBrygadaIZmiana
-    HideAllProblems
+    ' Only run the main initialization when the required controls exist.
+    If ControlExists("ComboBoxLinia") And ControlExists("ComboBoxProjekt") Then
+        InitializeLiniaIProjekty
+        InitializeBrygadaIZmiana
+        HideAllProblems
+    End If
 End Sub
 
 ' Shows the form modelessly so Excel stays interactive.
@@ -62,6 +65,10 @@ End Sub
 
 ' Populates ComboBoxBrygada and ComboBoxZmiana with static choices.
 Private Sub InitializeBrygadaIZmiana()
+    If Not ControlExists("ComboBoxBrygada") Or Not ControlExists("ComboBoxZmiana") Then
+        Exit Sub
+    End If
+
     With Me.ComboBoxBrygada
         .Clear
         .AddItem "A"
