@@ -318,6 +318,21 @@ End Sub
 ' ComboBoxBoxyOp list. Safe to call even when the combo is absent.
 Public Sub InitializeBoxForm(ByVal targetForm As Object)
     PopulateBoxOperatorList targetForm, Me
+
+    Dim planDate As String
+    planDate = Trim$(GetTextIfExists(Me, "TextBoxDay"))
+    If planDate <> "" Then SetTextIfExists targetForm, "TextBoxDay", planDate
+End Sub
+
+' Opens the box logging form modelessly and seeds it with current operators and date.
+Public Sub ShowBoxLogForm()
+    Dim frm As Object
+    If Not TryShowForm("BoxLogForm", frm) Then
+        MsgBox "Nie można otworzyć formularza BoxLogForm.", vbExclamation
+        Exit Sub
+    End If
+
+    InitializeBoxForm frm
 End Sub
 
 ' Saves box data (date, operator, box number, current and added quantities) to the
@@ -363,11 +378,24 @@ Public Sub SaveBoxEntry(ByVal sourceForm As Object, Optional ByVal sourceMainFor
     Dim startCol As Long
     startCol = ws.Columns("AK").Column
 
-    ws.Cells(2, startCol).Value = planDate
-    ws.Cells(2, startCol + 1).Value = operatorName
-    ws.Cells(2, startCol + 2).Value = boxNumber
-    ws.Cells(2, startCol + 3).Value = qtyCurrent
-    ws.Cells(2, startCol + 4).Value = qtyAdded
+    Dim targetRow As Long
+    targetRow = ws.Cells(ws.Rows.Count, startCol).End(xlUp).Row
+    If targetRow < 2 Then
+        targetRow = 2
+    Else
+        targetRow = targetRow + 1
+    End If
+
+    ws.Cells(targetRow, startCol).Value = planDate
+    ws.Cells(targetRow, startCol + 1).Value = operatorName
+    ws.Cells(targetRow, startCol + 2).Value = boxNumber
+    ws.Cells(targetRow, startCol + 3).Value = qtyCurrent
+    ws.Cells(targetRow, startCol + 4).Value = qtyAdded
+End Sub
+
+' Convenience wrapper for box forms to call from their save buttons.
+Public Sub SaveBoxEntryFromBoxForm(ByVal boxForm As Object)
+    SaveBoxEntry boxForm, Me
 End Sub
 
 ' Restores default appearance for a button.
@@ -456,6 +484,15 @@ Private Function GetTextIfExists(ByVal formObj As Object, ByVal controlName As S
 
     On Error GoTo 0
 End Function
+
+' Safely sets a control's Value when it exists.
+Private Sub SetTextIfExists(ByVal formObj As Object, ByVal controlName As String, ByVal newValue As String)
+    On Error Resume Next
+    Dim ctrl As Object
+    Set ctrl = formObj.Controls(controlName)
+    If Err.Number = 0 Then ctrl.Value = newValue Else Err.Clear
+    On Error GoTo 0
+End Sub
 
 ' Safely returns a ComboBox control when it exists and is the right type.
 Private Function GetComboIfExists(ByVal controlName As String) As MSForms.ComboBox
