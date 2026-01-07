@@ -10,6 +10,7 @@ Private mSharedContext As Object
 
 ' Initializes ComboBoxLinia with line headers from row 1 of the cfg_projekt sheet
 ' and loads ComboBoxProjekt with the projects under the currently selected line.
+' Initializes the main form, populating combos and syncing shared context.
 Private Sub UserForm_Initialize()
     ' Only run the main initialization when the required controls exist.
     If ControlExists("ComboBoxLinia") And ControlExists("ComboBoxProjekt") Then
@@ -22,10 +23,12 @@ Private Sub UserForm_Initialize()
 End Sub
 
 ' Shows the form modelessly so Excel stays interactive.
+' Shows the form modelessly so Excel stays interactive.
 Public Sub ShowModeless()
     Me.Show vbModeless
 End Sub
 
+' Fills the line and project combo boxes when the form opens.
 ' Fills the line and project combo boxes when the form opens.
 Private Sub InitializeLiniaIProjekty()
     On Error GoTo ExitInit
@@ -69,6 +72,7 @@ ExitInit:
 End Sub
 
 ' Populates ComboBoxBrygada and ComboBoxZmiana with static choices.
+' Populates crew (brygada) and shift (zmiana) combo boxes with static choices.
 Private Sub InitializeBrygadaIZmiana()
     If Not ControlExists("ComboBoxBrygada") Or Not ControlExists("ComboBoxZmiana") Then
         Exit Sub
@@ -91,6 +95,7 @@ Private Sub InitializeBrygadaIZmiana()
 End Sub
 
 ' Populates ComboBoxProjekt with the projects found in the column for the given line.
+' Populates ComboBoxProjekt with the projects found for the given line.
 Public Sub LoadProjectsForLine(ByVal linia As String)
     Dim ws As Worksheet
     Set ws = TryGetWorksheet("cfg_projekt")
@@ -115,6 +120,7 @@ Public Sub LoadProjectsForLine(ByVal linia As String)
 End Sub
 
 ' Event handler to keep the project list in sync when the line selection changes.
+' Keeps project and operator choices in sync when line changes.
 Private Sub ComboBoxLinia_Change()
     LoadProjectsForLine Me.ComboBoxLinia.Value
     LoadOperatorsForLine Me.ComboBoxLinia.Value
@@ -124,6 +130,7 @@ Private Sub ComboBoxLinia_Change()
 End Sub
 
 ' Refreshes button visibility based on the selected line and project.
+' Refreshes availability and problems when project changes.
 Private Sub ComboBoxProjekt_Change()
     UpdateButtonVisibility
     HideAllProblems
@@ -131,6 +138,7 @@ Private Sub ComboBoxProjekt_Change()
 End Sub
 
 ' Resets all process buttons to hidden and default styling.
+' Resets process buttons and hides them before re-evaluating availability.
 Private Sub HideAllProcessButtons()
     mSelectedROST = ""
     mSelectedPrasaProces = ""
@@ -146,6 +154,7 @@ Private Sub HideAllProcessButtons()
 End Sub
 
 ' Applies availability rules from cfg_dostepnosc for the chosen line and project.
+' Applies availability rules from cfg_dostepnosc for the chosen line/project.
 Private Sub UpdateButtonVisibility()
     HideAllProcessButtons
 
@@ -205,6 +214,7 @@ ContinueNext:
 End Sub
 
 ' Sets button visible when the availability flag is 1 and resets its style.
+' Shows a process button when its availability flag is true.
 Private Sub ShowIfAvailable(ByVal btn As MSForms.CommandButton, ByVal flagValue As Variant)
     btn.Visible = CBool(flagValue)
     If btn.Visible Then
@@ -213,6 +223,7 @@ Private Sub ShowIfAvailable(ByVal btn As MSForms.CommandButton, ByVal flagValue 
 End Sub
 
 ' Loads operator choices for ComboBoxOp1-ComboBoxOp4 based on the selected line.
+' Loads operator names for ComboBoxOp1-Op4 based on the selected line.
 Private Sub LoadOperatorsForLine(ByVal linia As String)
     ClearOperatorCombos
 
@@ -247,6 +258,7 @@ Private Sub LoadOperatorsForLine(ByVal linia As String)
 End Sub
 
 ' Clears operator combo boxes.
+' Clears operator combo boxes.
 Private Sub ClearOperatorCombos()
     Me.ComboBoxOp1.Clear
     Me.ComboBoxOp2.Clear
@@ -254,6 +266,7 @@ Private Sub ClearOperatorCombos()
     Me.ComboBoxOp4.Clear
 End Sub
 
+' Populates a combo box with operator names.
 ' Populates a combo box with operator names.
 Private Sub SetComboOptions(ByVal comboBox As MSForms.ComboBox, ByVal operators As Collection)
     Dim idx As Long
@@ -264,6 +277,7 @@ Private Sub SetComboOptions(ByVal comboBox As MSForms.ComboBox, ByVal operators 
     Next idx
 End Sub
 
+' Refreshes the dependent ComboBoxBoxyOp list whenever operator fields change.
 ' Refreshes the dependent ComboBoxBoxyOp list whenever operator fields change.
 Private Sub RefreshBoxyOp()
     PopulateBoxOperatorList Me, Me
@@ -290,6 +304,7 @@ Private Sub ComboBoxZmiana_Change()
 End Sub
 
 ' Collects operators from ComboBoxOp1-Op4 and TextBoxOp1-Op4 without duplicates.
+' Collects operators from ComboBoxOp1-Op4 and TextBoxOp1-Op4 without duplicates.
 Private Function CollectOperatorNames(Optional ByVal sourceForm As Object = Nothing) As Object
     Dim dict As Object
     Set dict = CreateObject("Scripting.Dictionary")
@@ -315,6 +330,7 @@ Private Function CollectOperatorNames(Optional ByVal sourceForm As Object = Noth
 End Function
 
 ' Adds a single operator value to a dictionary when it is non-empty.
+' Adds a single operator value to a dictionary when it is non-empty.
 Private Sub AddOperatorValue(ByVal dict As Object, ByVal rawValue As String)
     Dim name As String
     name = Trim$(rawValue)
@@ -326,6 +342,7 @@ Private Sub AddOperatorValue(ByVal dict As Object, ByVal rawValue As String)
 End Sub
 
 ' Populates ComboBoxBoxyOp on another form with the gathered operators.
+' Populates ComboBoxBoxyOp on another form with gathered operators.
 Public Sub PopulateBoxOperatorList(ByVal targetForm As Object, Optional ByVal sourceForm As Object = Nothing)
     If targetForm Is Nothing Then Exit Sub
 
@@ -348,6 +365,7 @@ End Sub
 
 ' Prepares a related form by pushing current operator choices into its
 ' ComboBoxBoxyOp list. Safe to call even when the combo is absent.
+' Prepares a related form by pushing current operators and date.
 Public Sub InitializeBoxForm(ByVal targetForm As Object)
     PopulateBoxOperatorList targetForm, Me
 
@@ -357,6 +375,7 @@ Public Sub InitializeBoxForm(ByVal targetForm As Object)
 End Sub
 
 ' Opens the box logging form modelessly and seeds it with current operators and date.
+' Opens the box logging form modelessly and seeds it with context.
 Public Sub ShowBoxLogForm()
     Dim frm As Object
     If Not TryShowForm("BoxLogForm", frm) Then
@@ -369,6 +388,7 @@ End Sub
 
 ' Saves box data (date, operator, box number, current and added quantities) to the
 ' "data" sheet starting at row 2, column AK and moving right.
+' Saves box data (date, operator, box number, quantities) to the AK+ log area.
 Public Sub SaveBoxEntry(ByVal sourceForm As Object, Optional ByVal sourceMainForm As Object = Nothing)
     Dim ws As Worksheet
     Set ws = TryGetWorksheet("data")
@@ -431,20 +451,24 @@ Public Sub SaveBoxEntry(ByVal sourceForm As Object, Optional ByVal sourceMainFor
 End Sub
 
 ' Convenience wrapper for box forms to call from their save buttons.
+' Convenience wrapper for box forms to call from their save buttons.
 Public Sub SaveBoxEntryFromBoxForm(ByVal boxForm As Object)
     SaveBoxEntry boxForm, Me
 End Sub
 
+' Click handler for the dedicated "dodaj box" button to append a box entry.
 ' Click handler for the dedicated "dodaj box" button to append a box entry.
 Public Sub CommandButtondodajbox_Click()
     SaveBoxEntryFromBoxForm Me
 End Sub
 
 ' Restores default appearance for a button.
+' Restores default appearance for a button.
 Private Sub ResetButtonStyle(ByVal btn As MSForms.CommandButton)
     btn.BackColor = vbButtonFace
 End Sub
 
+' Highlights within the RO/ST pair without clearing Prasa/Proces selection.
 ' Highlights within the RO/ST pair without clearing Prasa/Proces selection.
 Private Sub HighlightROST(ByVal selectedButton As MSForms.CommandButton)
     ResetButtonStyle Me.CommandButtonRO
@@ -454,6 +478,7 @@ Private Sub HighlightROST(ByVal selectedButton As MSForms.CommandButton)
 End Sub
 
 ' Highlights within the Prasa/Proces pair without clearing RO/ST selection.
+' Highlights within the Prasa/Proces pair without clearing RO/ST selection.
 Private Sub HighlightPrasaProces(ByVal selectedButton As MSForms.CommandButton)
     ResetButtonStyle Me.CommandButtonPrasa
     ResetButtonStyle Me.CommandButtonProces
@@ -461,6 +486,7 @@ Private Sub HighlightPrasaProces(ByVal selectedButton As MSForms.CommandButton)
     RefreshSharedContext Me
 End Sub
 
+' Validates the date entered in TextBoxDay using the DD.MM.RRRR format.
 ' Validates the date entered in TextBoxDay using the DD.MM.RRRR format.
 Private Sub ValidateDayInput()
     Dim rawValue As String
@@ -507,6 +533,7 @@ End Sub
 
 ' Returns a normalized date value (dd.mm.yyyy) when TextBoxDay contains a valid
 ' date, or an empty string otherwise.
+' Returns a validated DD.MM.RRRR date value or an empty string.
 Private Function GetValidatedDayValue(Optional ByVal sourceForm As Object = Nothing) As String
     Dim formObj As Object
     If sourceForm Is Nothing Then
@@ -548,6 +575,7 @@ End Function
 
 ' Keeps a shared snapshot of the main form so other user forms can read the latest
 ' entries while UserForm1 stays open.
+' Keeps a shared snapshot of the main form for dependent forms.
 Public Sub RefreshSharedContext(ByVal sourceForm As Object)
     If sourceForm Is Nothing Then Exit Sub
 
@@ -576,6 +604,7 @@ Public Sub RefreshSharedContext(ByVal sourceForm As Object)
 End Sub
 
 ' Applies the shared context to any form that exposes matching controls.
+' Applies the shared context to any form that exposes matching controls.
 Public Sub ApplySharedContext(ByVal targetForm As Object)
     If targetForm Is Nothing Then Exit Sub
     If mSharedContext Is Nothing Then Exit Sub
@@ -589,6 +618,7 @@ Public Sub ApplySharedContext(ByVal targetForm As Object)
     PopulateBoxOperatorListFromContext targetForm
 End Sub
 
+' Populates ComboBoxBoxyOp using the cached shared operator list.
 Private Sub PopulateBoxOperatorListFromContext(ByVal targetForm As Object)
     If targetForm Is Nothing Then Exit Sub
     If mSharedContext Is Nothing Then Exit Sub
@@ -610,6 +640,7 @@ Private Sub PopulateBoxOperatorListFromContext(ByVal targetForm As Object)
     If combo.ListCount > 0 Then combo.Value = combo.List(0)
 End Sub
 
+' Safely sets a combo value, adding it if missing.
 Private Sub SafeSetCombo(ByVal targetForm As Object, ByVal controlName As String, ByVal newValue As String)
     If targetForm Is Nothing Then Exit Sub
     If newValue = "" Then Exit Sub
@@ -629,6 +660,7 @@ Private Sub SafeSetCombo(ByVal targetForm As Object, ByVal controlName As String
     combo.Value = newValue
 End Sub
 
+' Retrieves a value from the shared context dictionary.
 Private Function GetSharedValue(ByVal key As String) As String
     If mSharedContext Is Nothing Then Exit Function
     If Not mSharedContext.Exists(key) Then Exit Function
@@ -1483,17 +1515,20 @@ Private Sub SortStrings(ByRef arr() As String)
     Next i
 End Sub
 
+' Re-validates the date and updates shared context when TextBoxDay changes.
 Private Sub TextBoxDay_Change()
     ValidateDayInput
     RefreshSharedContext Me
 End Sub
 
+' Recalculate hourly plan, actuals, and problems when plan changes.
 Private Sub TextBoxPlan_Change()
     UpdateHourlyPlan
     UpdateHourlyActuals
     UpdateProblems
 End Sub
 
+' Distributes the plan quantity evenly across 8 hourly text boxes, rounding up.
 ' Distributes the plan quantity evenly across 8 hourly text boxes, rounding up.
 Private Sub UpdateHourlyPlan()
     Dim totalPlan As Double
@@ -1519,6 +1554,7 @@ Private Sub UpdateHourlyPlan()
 End Sub
 
 ' Clears hourly plan fields when there is no valid plan input.
+' Clears hourly plan fields when there is no valid plan input.
 Private Sub ClearHourlyPlan()
     Dim idx As Long
     For idx = 1 To 8
@@ -1527,6 +1563,7 @@ Private Sub ClearHourlyPlan()
     UpdateHourlyActuals
 End Sub
 
+' Sums operator hourly quantities and colors them based on comparison to plan.
 ' Sums operator hourly quantities and colors them based on comparison to plan.
 Private Sub UpdateHourlyActuals()
     Dim totalActual As Double
@@ -1598,6 +1635,7 @@ Private Sub TextBoxH8_Change()
 End Sub
 
 ' Hides and clears all problem labels and text boxes.
+' Hides and clears all problem labels and text boxes.
 Private Sub HideAllProblems()
     Dim idx As Long
     For idx = 1 To 20
@@ -1624,6 +1662,7 @@ Private Sub HideAllProblems()
 End Sub
 
 ' Populates problem labels and inputs based on cfg_dane for the chosen line and process selections.
+' Populates problem labels and inputs based on cfg_dane selections.
 Private Sub UpdateProblems()
     HideAllProblems
 
@@ -1685,6 +1724,7 @@ Private Sub UpdateProblems()
 End Sub
 
 ' Finds (or creates) the row whose column A matches the given label.
+' Finds (or creates) the row whose column A matches the given label.
 Private Function FindOrCreateRow(ByVal ws As Worksheet, ByVal label As String) As Long
     Dim lastRow As Long
     lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
@@ -1701,6 +1741,7 @@ Private Function FindOrCreateRow(ByVal ws As Worksheet, ByVal label As String) A
     ws.Cells(FindOrCreateRow, 1).Value = label
 End Function
 
+' Finds an existing row whose column A matches the given label.
 Private Function FindRow(ByVal ws As Worksheet, ByVal label As String) As Long
     Dim normalized As String
     normalized = NormalizeLabel(label)
@@ -1719,6 +1760,7 @@ Private Function FindRow(ByVal ws As Worksheet, ByVal label As String) As Long
     Next rowIndex
 End Function
 
+' Writes a value into the row identified by label, using targetCol or a fixed column.
 ' Writes a value into the row identified by label, using targetCol or a fixed column.
 Private Sub WriteField(ByVal ws As Worksheet, ByVal label As String, ByVal value As Variant, _
                        ByVal targetCol As Long, Optional ByVal fixedCol As Long = 0)
@@ -1740,6 +1782,7 @@ Private Sub WriteField(ByVal ws As Worksheet, ByVal label As String, ByVal value
     ws.Cells(rowIndex, colToUse).Value = value
 End Sub
 
+' Reads a stored value for the label from the specified column.
 Private Function GetFieldValue(ByVal ws As Worksheet, ByVal label As String, _
                                ByVal targetCol As Long) As Variant
     If targetCol <= 0 Then Exit Function
@@ -1752,6 +1795,7 @@ Private Function GetFieldValue(ByVal ws As Worksheet, ByVal label As String, _
     GetFieldValue = ws.Cells(rowIndex, targetCol).Value
 End Function
 
+' Normalizes labels for column A by replacing spaces with underscores.
 ' Normalizes labels for column A by replacing spaces with underscores.
 Private Function NormalizeLabel(ByVal label As String) As String
     Dim trimmed As String
@@ -1769,6 +1813,7 @@ End Function
 
 ' Converts a stored label into a valid range name by normalizing spaces and
 ' replacing other characters Excel disallows in named ranges.
+' Converts a stored label into a valid range name.
 Private Function ToRangeName(ByVal label As String) As String
     Dim cleaned As String
     cleaned = NormalizeLabel(label)
