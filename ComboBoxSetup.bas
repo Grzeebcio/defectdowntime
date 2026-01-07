@@ -396,8 +396,12 @@ Private Sub CommandButtonPostoj_Click()
     On Error GoTo PostojError
 
     If Not ValidateRequiredInputs() Then Exit Sub
-    If Not TryShowForm("UserFormAwarie") Then
+
+    Dim frm As Object
+    If Not TryShowForm("UserFormAwarie", frm) Then
         MsgBox "Nie można otworzyć formularza UserFormAwarie.", vbExclamation
+    Else
+        ApplyContextToForm frm
     End If
     Exit Sub
 
@@ -845,15 +849,57 @@ Public Sub ShowDependentUserForm()
     End If
 End Sub
 
+' Applies the current form's line and project selections to another form if matching
+' combo boxes exist there. Missing controls are silently ignored.
+Private Sub ApplyContextToForm(ByVal targetForm As Object)
+    If targetForm Is Nothing Then Exit Sub
+
+    Dim linia As String
+    Dim projekt As String
+
+    If ControlExists("ComboBoxLinia") Then linia = Me.ComboBoxLinia.Value
+    If ControlExists("ComboBoxProjekt") Then projekt = Me.ComboBoxProjekt.Value
+
+    If linia <> "" Then SetComboValueIfExists targetForm, "ComboBoxLinia", linia
+    If projekt <> "" Then SetComboValueIfExists targetForm, "ComboBoxProjekt", projekt
+End Sub
+
+' Sets a combo box value on another form, adding the item if it is not already present.
+Private Sub SetComboValueIfExists(ByVal targetForm As Object, ByVal controlName As String, ByVal value As String)
+    If targetForm Is Nothing Then Exit Sub
+    If value = "" Then Exit Sub
+
+    Dim ctrl As Object
+    On Error Resume Next
+    Set ctrl = targetForm.Controls(controlName)
+    On Error GoTo 0
+
+    If ctrl Is Nothing Then Exit Sub
+    If Not TypeOf ctrl Is MSForms.ComboBox Then Exit Sub
+
+    Dim idx As Long, exists As Boolean
+    For idx = 0 To ctrl.ListCount - 1
+        If StrComp(CStr(ctrl.List(idx)), value, vbTextCompare) = 0 Then
+            exists = True
+            Exit For
+        End If
+    Next idx
+
+    If Not exists Then ctrl.AddItem value
+    ctrl.Value = value
+End Sub
+
 ' Creates and shows a UserForm by name if it exists in the project. Returns True on success.
-Private Function TryShowForm(ByVal formName As String) As Boolean
+Private Function TryShowForm(ByVal formName As String, Optional ByRef openedForm As Object) As Boolean
     Dim frm As Object
+    Set openedForm = Nothing
 
     ' First, try to create a fresh instance by name.
     On Error Resume Next
     Set frm = VBA.UserForms.Add(formName)
     If Err.Number = 0 And Not frm Is Nothing Then
         frm.Show vbModeless
+        Set openedForm = frm
         TryShowForm = True
         Exit Function
     End If
@@ -866,6 +912,7 @@ Private Function TryShowForm(ByVal formName As String) As Boolean
     For Each loaded In VBA.UserForms
         If StrComp(loaded.Name, formName, vbTextCompare) = 0 Then
             loaded.Show vbModeless
+            Set openedForm = loaded
             TryShowForm = True
             Exit Function
         End If
