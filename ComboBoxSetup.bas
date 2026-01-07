@@ -617,9 +617,9 @@ Private Sub ClearVerticalRange(ByVal rng As Range, ByVal depth As Long)
     If depth < 1 Then depth = 1
 
     For i = 0 To depth - 1
-        Set cellToClear = TopLeftCell(anchor.Offset(i, 0))
+        Set cellToClear = TopLeftCell(anchor.Worksheet.Cells(anchor.Row + i, anchor.Column))
         If Not cellToClear Is Nothing Then
-            cellToClear.ClearContents
+            cellToClear.MergeArea.ClearContents
         End If
     Next i
 End Sub
@@ -758,7 +758,7 @@ Private Sub CopyAlarmValues(ByVal wsData As Worksheet, ByVal wsReport As Workshe
 
             If Not anchorCell Is Nothing And sourceCol > 0 Then
                 Dim targetCell As Range
-                Set targetCell = TopLeftCell(anchorCell.Offset(entryIndex - 1, 0))
+                Set targetCell = TopLeftCell(anchorCell.Worksheet.Cells(anchorCell.Row + (entryIndex - 1), anchorCell.Column))
 
                 If Not targetCell Is Nothing Then
                     targetCell.Value = wsData.Cells(rowIndex, sourceCol).Value
