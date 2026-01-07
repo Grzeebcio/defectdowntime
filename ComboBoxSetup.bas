@@ -6,7 +6,7 @@ Private mHasPrasa As Boolean
 Private mHasProces As Boolean
 Private mSelectedROST As String
 Private mSelectedPrasaProces As String
-Private mSharedContext As Object
+Private mAppState As Object
 
 ' Initializes ComboBoxLinia with line headers from row 1 of the cfg_projekt sheet
 ' and loads ComboBoxProjekt with the projects under the currently selected line.
@@ -19,6 +19,9 @@ Private Sub UserForm_Initialize()
         HideAllProblems
     End If
 
+    EnsureAppState
+    LoadStateFromSettings
+    ApplyStateToForm Me
     RefreshSharedContext Me
 End Sub
 
@@ -405,14 +408,14 @@ Public Sub SaveBoxEntry(ByVal sourceForm As Object, Optional ByVal sourceMainFor
     End If
 
     Dim planDate As String
-    planDate = Trim$(GetTextIfExists(contextForm, "TextBoxDay"))
+    planDate = GetStateOrControl(contextForm, "Data", "TextBoxDay")
     If planDate = "" Then planDate = Trim$(GetTextIfExists(sourceForm, "TextBoxDay"))
 
     Dim operatorName As String
     operatorName = Trim$(GetTextIfExists(sourceForm, "ComboBoxBoxyOp"))
 
     Dim brygada As String
-    brygada = Trim$(GetTextIfExists(contextForm, "ComboBoxBrygada"))
+    brygada = GetStateOrControl(contextForm, "Brygada", "ComboBoxBrygada")
     If brygada = "" Then brygada = Trim$(GetTextIfExists(sourceForm, "ComboBoxBrygada"))
 
     Dim boxNumber As String
@@ -573,59 +576,145 @@ InvalidDate:
     GetValidatedDayValue = ""
 End Function
 
+' Ensures the in-memory application state dictionary exists.
+Private Sub EnsureAppState()
+    If mAppState Is Nothing Then
+        Set mAppState = CreateObject("Scripting.Dictionary")
+    End If
+End Sub
+
+' Stores a simple value in the AppState dictionary.
+Private Sub SetAppStateValue(ByVal key As String, ByVal value As String)
+    EnsureAppState
+    mAppState(key) = value
+End Sub
+
+' Stores an object value in the AppState dictionary.
+Private Sub SetAppStateObject(ByVal key As String, ByVal value As Object)
+    EnsureAppState
+    Set mAppState(key) = value
+End Sub
+
+' Retrieves a string value from AppState.
+Private Function GetAppStateValue(ByVal key As String) As String
+    If mAppState Is Nothing Then Exit Function
+    If Not mAppState.Exists(key) Then Exit Function
+    GetAppStateValue = CStr(mAppState(key))
+End Function
+
+' Applies AppState values to any form that exposes matching controls.
+Private Sub ApplyStateToForm(ByVal targetForm As Object)
+    If targetForm Is Nothing Then Exit Sub
+    EnsureAppState
+
+    SafeSetCombo targetForm, "ComboBoxLinia", GetAppStateValue("Linia")
+    SafeSetCombo targetForm, "ComboBoxProjekt", GetAppStateValue("Projekt")
+    SafeSetCombo targetForm, "ComboBoxBrygada", GetAppStateValue("Brygada")
+    SafeSetCombo targetForm, "ComboBoxZmiana", GetAppStateValue("Zmiana")
+    SetTextIfExists targetForm, "TextBoxDay", GetAppStateValue("Data")
+    SetTextIfExists targetForm, "TextBoxPlan", GetAppStateValue("Plan")
+    SetTextIfExists targetForm, "TextBoxSum", GetAppStateValue("Suma")
+
+    PopulateBoxOperatorListFromContext targetForm
+End Sub
+
+' Loads persisted AppState values from the Settings sheet when present.
+Private Sub LoadStateFromSettings()
+    Dim ws As Worksheet
+    Set ws = TryGetSettingsSheet()
+    If ws Is Nothing Then Exit Sub
+
+    EnsureAppState
+
+    Dim lastRow As Long
+    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+
+    Dim rowIndex As Long
+    For rowIndex = 1 To lastRow
+        Dim key As String
+        key = Trim$(CStr(ws.Cells(rowIndex, 1).Value))
+        If key <> "" Then
+            mAppState(key) = CStr(ws.Cells(rowIndex, 2).Value)
+        End If
+    Next rowIndex
+End Sub
+
+' Persists AppState values to a Settings sheet so data survives reopen.
+Private Sub SaveStateToSettings()
+    Dim ws As Worksheet
+    Set ws = TryGetSettingsSheet()
+    If ws Is Nothing Then Exit Sub
+    If mAppState Is Nothing Then Exit Sub
+
+    Dim key As Variant
+    Dim rowIndex As Long
+    rowIndex = 1
+
+    ws.Columns("A:B").ClearContents
+    For Each key In mAppState.Keys
+        If VarType(mAppState(key)) <> vbObject Then
+            ws.Cells(rowIndex, 1).Value = CStr(key)
+            ws.Cells(rowIndex, 2).Value = CStr(mAppState(key))
+            rowIndex = rowIndex + 1
+        End If
+    Next key
+End Sub
+
+' Returns the settings sheet when present (Settings or data), or Nothing if absent.
+Private Function TryGetSettingsSheet() As Worksheet
+    Set TryGetSettingsSheet = TryGetWorksheet("Settings")
+End Function
+
+' Returns a value from AppState, falling back to a control value when missing.
+Private Function GetStateOrControl(ByVal formObj As Object, ByVal key As String, ByVal controlName As String) As String
+    Dim stateValue As String
+    stateValue = GetAppStateValue(key)
+    If Trim$(stateValue) <> "" Then
+        GetStateOrControl = stateValue
+    Else
+        GetStateOrControl = Trim$(GetTextIfExists(formObj, controlName))
+    End If
+End Function
+
 ' Keeps a shared snapshot of the main form so other user forms can read the latest
 ' entries while UserForm1 stays open.
 ' Keeps a shared snapshot of the main form for dependent forms.
 Public Sub RefreshSharedContext(ByVal sourceForm As Object)
     If sourceForm Is Nothing Then Exit Sub
+    EnsureAppState
 
-    Set mSharedContext = CreateObject("Scripting.Dictionary")
-
-    mSharedContext("Linia") = Trim$(GetTextIfExists(sourceForm, "ComboBoxLinia"))
-    mSharedContext("Projekt") = Trim$(GetTextIfExists(sourceForm, "ComboBoxProjekt"))
-    mSharedContext("Brygada") = Trim$(GetTextIfExists(sourceForm, "ComboBoxBrygada"))
-    mSharedContext("Zmiana") = Trim$(GetTextIfExists(sourceForm, "ComboBoxZmiana"))
-    mSharedContext("Data") = GetValidatedDayValue(sourceForm)
+    SetAppStateValue "Linia", Trim$(GetTextIfExists(sourceForm, "ComboBoxLinia"))
+    SetAppStateValue "Projekt", Trim$(GetTextIfExists(sourceForm, "ComboBoxProjekt"))
+    SetAppStateValue "Brygada", Trim$(GetTextIfExists(sourceForm, "ComboBoxBrygada"))
+    SetAppStateValue "Zmiana", Trim$(GetTextIfExists(sourceForm, "ComboBoxZmiana"))
+    SetAppStateValue "Data", GetValidatedDayValue(sourceForm)
 
     Dim ops As Object
     Set ops = CollectOperatorNames(sourceForm)
-    Set mSharedContext("Operatorzy") = ops
+    SetAppStateObject "Operatorzy", ops
 
-    mSharedContext("ROST") = mSelectedROST
-    mSharedContext("PrasaProces") = mSelectedPrasaProces
+    SetAppStateValue "ROST", mSelectedROST
+    SetAppStateValue "PrasaProces", mSelectedPrasaProces
+    SetAppStateValue "Plan", Trim$(GetTextIfExists(sourceForm, "TextBoxPlan"))
+    SetAppStateValue "Suma", Trim$(GetTextIfExists(sourceForm, "TextBoxSum"))
 
-    Dim planVal As String
-    planVal = Trim$(GetTextIfExists(sourceForm, "TextBoxPlan"))
-    mSharedContext("Plan") = planVal
-
-    Dim sumVal As String
-    sumVal = Trim$(GetTextIfExists(sourceForm, "TextBoxSum"))
-    mSharedContext("Suma") = sumVal
+    SaveStateToSettings
 End Sub
 
 ' Applies the shared context to any form that exposes matching controls.
 ' Applies the shared context to any form that exposes matching controls.
 Public Sub ApplySharedContext(ByVal targetForm As Object)
-    If targetForm Is Nothing Then Exit Sub
-    If mSharedContext Is Nothing Then Exit Sub
-
-    SafeSetCombo targetForm, "ComboBoxLinia", GetSharedValue("Linia")
-    SafeSetCombo targetForm, "ComboBoxProjekt", GetSharedValue("Projekt")
-    SafeSetCombo targetForm, "ComboBoxBrygada", GetSharedValue("Brygada")
-    SafeSetCombo targetForm, "ComboBoxZmiana", GetSharedValue("Zmiana")
-    SetTextIfExists targetForm, "TextBoxDay", GetSharedValue("Data")
-
-    PopulateBoxOperatorListFromContext targetForm
+    ApplyStateToForm targetForm
 End Sub
 
 ' Populates ComboBoxBoxyOp using the cached shared operator list.
 Private Sub PopulateBoxOperatorListFromContext(ByVal targetForm As Object)
     If targetForm Is Nothing Then Exit Sub
-    If mSharedContext Is Nothing Then Exit Sub
-    If Not mSharedContext.Exists("Operatorzy") Then Exit Sub
+    If mAppState Is Nothing Then Exit Sub
+    If Not mAppState.Exists("Operatorzy") Then Exit Sub
 
     Dim ops As Object
-    Set ops = mSharedContext("Operatorzy")
+    Set ops = mAppState("Operatorzy")
     If ops Is Nothing Then Exit Sub
 
     Dim combo As MSForms.ComboBox
@@ -662,9 +751,7 @@ End Sub
 
 ' Retrieves a value from the shared context dictionary.
 Private Function GetSharedValue(ByVal key As String) As String
-    If mSharedContext Is Nothing Then Exit Function
-    If Not mSharedContext.Exists(key) Then Exit Function
-    GetSharedValue = CStr(mSharedContext(key))
+    GetSharedValue = GetAppStateValue(key)
 End Function
 
 ' Safely checks for the presence of a control by name on the form.
@@ -860,7 +947,7 @@ Private Sub SaveFormData()
 
     ' Ensure a valid shift and compute its target column.
     Dim shiftVal As Long
-    shiftVal = CLng(Val(Me.ComboBoxZmiana.Value))
+    shiftVal = CLng(Val(GetStateOrControl(Me, "Zmiana", "ComboBoxZmiana")))
     If shiftVal < 1 Or shiftVal > 3 Then
         MsgBox "Wybierz zmianę 1, 2 lub 3 przed zapisem.", vbExclamation
         Exit Sub
@@ -870,7 +957,8 @@ Private Sub SaveFormData()
     targetCol = 1 + shiftVal ' 1->B, 2->C, 3->D
 
     Dim dayValue As String
-    dayValue = GetValidatedDayValue()
+    dayValue = GetAppStateValue("Data")
+    If dayValue = "" Then dayValue = GetValidatedDayValue()
     If dayValue = "" Then
         MsgBox "Wprowadź poprawną datę (DD.MM.RRRR) przed zapisem.", vbExclamation
         Exit Sub
@@ -878,16 +966,30 @@ Private Sub SaveFormData()
 
     If Not EnsureProcessSelections() Then Exit Sub
 
+    Dim liniaValue As String
+    Dim projektValue As String
+    Dim brygadaValue As String
+    Dim zmianaValue As String
+    Dim planValue As String
+    Dim sumaValue As String
+
+    liniaValue = GetStateOrControl(Me, "Linia", "ComboBoxLinia")
+    projektValue = GetStateOrControl(Me, "Projekt", "ComboBoxProjekt")
+    brygadaValue = GetStateOrControl(Me, "Brygada", "ComboBoxBrygada")
+    zmianaValue = GetStateOrControl(Me, "Zmiana", "ComboBoxZmiana")
+    planValue = GetStateOrControl(Me, "Plan", "TextBoxPlan")
+    sumaValue = GetStateOrControl(Me, "Suma", "TextBoxSum")
+
     ' Clear previous entries so each save starts from a clean slate.
     ws.Columns("B:D").ClearContents
     ws.Columns("I").ClearContents
 
     ' Core identifiers and selections.
     WriteField ws, "Data", dayValue, targetCol
-    WriteField ws, "Linia", Me.ComboBoxLinia.Value, targetCol
-    WriteField ws, "Projekt", Me.ComboBoxProjekt.Value, targetCol
-    WriteField ws, "Brygada", Me.ComboBoxBrygada.Value, targetCol
-    WriteField ws, "Zmiana", Me.ComboBoxZmiana.Value, targetCol
+    WriteField ws, "Linia", liniaValue, targetCol
+    WriteField ws, "Projekt", projektValue, targetCol
+    WriteField ws, "Brygada", brygadaValue, targetCol
+    WriteField ws, "Zmiana", zmianaValue, targetCol
     WriteField ws, "RO/ST", mSelectedROST, targetCol
     WriteField ws, "Prasa/Proces", mSelectedPrasaProces, targetCol
 
@@ -898,7 +1000,7 @@ Private Sub SaveFormData()
     WriteField ws, "Operator 4", Me.ComboBoxOp4.Value, targetCol
 
     ' Plan and hourly plan.
-    WriteField ws, "Plan", Me.TextBoxPlan.Value, targetCol
+    WriteField ws, "Plan", planValue, targetCol
 
     Dim idx As Long
     For idx = 1 To 8
@@ -910,12 +1012,12 @@ Private Sub SaveFormData()
         WriteField ws, "Wykonanie H" & idx, Me.Controls("TextBoxH" & idx).Value, targetCol
     Next idx
 
-    WriteField ws, "Suma wykonania", Me.TextBoxSum.Value, targetCol, 9 ' Column I
+    WriteField ws, "Suma wykonania", sumaValue, targetCol, 9 ' Column I
 
     SaveProblemEntries ws, targetCol
 
     Dim wsReport As Worksheet
-    Set wsReport = GetReportSheet(Trim$(Me.ComboBoxLinia.Value), shiftVal, _
+    Set wsReport = GetReportSheet(Trim$(liniaValue), shiftVal, _
                                   mSelectedROST, mSelectedPrasaProces)
 
     If Not wsReport Is Nothing Then
@@ -934,7 +1036,8 @@ Private Sub AppendMainEntryToDataAK()
     End If
 
     Dim dayValue As String
-    dayValue = GetValidatedDayValue()
+    dayValue = GetAppStateValue("Data")
+    If dayValue = "" Then dayValue = GetValidatedDayValue()
     If dayValue = "" Then
         MsgBox "Wprowadź poprawną datę (DD.MM.RRRR) przed zapisem.", vbExclamation
         Exit Sub
@@ -952,10 +1055,10 @@ Private Sub AppendMainEntryToDataAK()
     End If
 
     ws.Cells(targetRow, startCol + 0).Value = dayValue                            ' AK Data
-    ws.Cells(targetRow, startCol + 1).Value = Trim$(Me.ComboBoxLinia.Value)       ' AL Linia
-    ws.Cells(targetRow, startCol + 2).Value = Trim$(Me.ComboBoxProjekt.Value)     ' AM Projekt
-    ws.Cells(targetRow, startCol + 3).Value = Trim$(Me.ComboBoxBrygada.Value)     ' AN Brygada
-    ws.Cells(targetRow, startCol + 4).Value = Trim$(Me.ComboBoxZmiana.Value)      ' AO Zmiana
+    ws.Cells(targetRow, startCol + 1).Value = GetStateOrControl(Me, "Linia", "ComboBoxLinia")   ' AL Linia
+    ws.Cells(targetRow, startCol + 2).Value = GetStateOrControl(Me, "Projekt", "ComboBoxProjekt") ' AM Projekt
+    ws.Cells(targetRow, startCol + 3).Value = GetStateOrControl(Me, "Brygada", "ComboBoxBrygada") ' AN Brygada
+    ws.Cells(targetRow, startCol + 4).Value = GetStateOrControl(Me, "Zmiana", "ComboBoxZmiana")  ' AO Zmiana
     ws.Cells(targetRow, startCol + 5).Value = mSelectedROST                       ' AP RO/ST
     ws.Cells(targetRow, startCol + 6).Value = mSelectedPrasaProces                ' AQ Prasa/Proces
 
@@ -965,7 +1068,7 @@ Private Sub AppendMainEntryToDataAK()
     ws.Cells(targetRow, startCol + 10).Value = Trim$(Me.ComboBoxOp4.Value)        ' AU Op4
 
     ws.Cells(targetRow, startCol + 11).Value = Trim$(GetTextIfExists(Me, "TextBoxboxilosc1")) ' AV Ilość box (stan)
-    ws.Cells(targetRow, startCol + 12).Value = Trim$(Me.TextBoxSum.Value)         ' AW Realizacja
+    ws.Cells(targetRow, startCol + 12).Value = GetStateOrControl(Me, "Suma", "TextBoxSum")    ' AW Realizacja
 End Sub
 
 ' Verifies required selections and inputs before running save or downtime actions.
@@ -974,15 +1077,16 @@ Private Function ValidateRequiredInputs() As Boolean
     Set missing = New Collection
 
     Dim dayValue As String
-    dayValue = GetValidatedDayValue()
+    dayValue = GetAppStateValue("Data")
+    If dayValue = "" Then dayValue = GetValidatedDayValue()
     If dayValue = "" Then missing.Add "data"
 
-    If Trim$(Me.ComboBoxLinia.Value) = "" Then missing.Add "linia"
-    If Trim$(Me.ComboBoxProjekt.Value) = "" Then missing.Add "projekt"
-    If Trim$(Me.ComboBoxBrygada.Value) = "" Then missing.Add "brygada"
-    If Trim$(Me.ComboBoxZmiana.Value) = "" Then missing.Add "zmiana"
-    If Trim$(Me.TextBoxPlan.Value) = "" Then missing.Add "plan"
-    If Trim$(Me.TextBoxSum.Value) = "" Then missing.Add "realizacja"
+    If GetStateOrControl(Me, "Linia", "ComboBoxLinia") = "" Then missing.Add "linia"
+    If GetStateOrControl(Me, "Projekt", "ComboBoxProjekt") = "" Then missing.Add "projekt"
+    If GetStateOrControl(Me, "Brygada", "ComboBoxBrygada") = "" Then missing.Add "brygada"
+    If GetStateOrControl(Me, "Zmiana", "ComboBoxZmiana") = "" Then missing.Add "zmiana"
+    If GetStateOrControl(Me, "Plan", "TextBoxPlan") = "" Then missing.Add "plan"
+    If GetStateOrControl(Me, "Suma", "TextBoxSum") = "" Then missing.Add "realizacja"
 
     If missing.Count > 0 Then
         Dim parts() As String
@@ -1312,12 +1416,12 @@ End Sub
 ' "PS3-1zm-RO-PRASA". Returns an empty string when required selections are missing.
 Private Function BuildDependentFormName() As String
     Dim linia As String
-    linia = Trim$(Me.ComboBoxLinia.Value)
+    linia = GetStateOrControl(Me, "Linia", "ComboBoxLinia")
 
     If linia = "" Then Exit Function
 
     Dim shiftVal As Long
-    shiftVal = CLng(Val(Me.ComboBoxZmiana.Value))
+    shiftVal = CLng(Val(GetStateOrControl(Me, "Zmiana", "ComboBoxZmiana")))
     If shiftVal < 1 Or shiftVal > 3 Then Exit Function
 
     If mSelectedROST = "" Or mSelectedPrasaProces = "" Then Exit Function
@@ -1575,6 +1679,8 @@ Private Sub TextBoxPlan_Change()
     UpdateHourlyPlan
     UpdateHourlyActuals
     UpdateProblems
+    SetAppStateValue "Plan", Trim$(Me.TextBoxPlan.Value)
+    RefreshSharedContext Me
 End Sub
 
 ' Distributes the plan quantity evenly across 8 hourly text boxes, rounding up.
@@ -1649,6 +1755,7 @@ Private Sub UpdateHourlyActuals()
     Next idx
 
     Me.TextBoxSum.Value = CStr(totalActual)
+    SetAppStateValue "Suma", Me.TextBoxSum.Value
 End Sub
 
 Private Sub TextBoxH1_Change()
