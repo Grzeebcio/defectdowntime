@@ -588,7 +588,14 @@ End Sub
 
 Private Sub CommandButtonSave_Click()
     If Not ValidateRequiredInputs() Then Exit Sub
+
+    ' Persist the main shift data first.
     SaveFormData
+
+    ' Append a summary row in the AK+ log for audit/history.
+    AppendMainEntryToDataAK
+
+    MsgBox "Dane zapisane.", vbInformation
 End Sub
 
 Private Sub CommandButtonPostoj_Click()
