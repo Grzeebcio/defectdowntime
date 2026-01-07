@@ -789,6 +789,8 @@ Private Sub CommandButtonPostoj_Click()
 
     If Not ValidateRequiredInputs() Then Exit Sub
 
+    If ShowAwariePageOnMultiPage() Then Exit Sub
+
     Dim frm As Object
     If TryShowForm("UserFormAwarie", frm, Me) Then
         ApplyContextToFormSafe frm, Me
@@ -800,6 +802,53 @@ Private Sub CommandButtonPostoj_Click()
 PostojError:
     MsgBox "Nie można otworzyć formularza UserFormAwarie: " & Err.Description, vbExclamation
 End Sub
+
+' Switches the multipage control to the awarie/postój page if it exists.
+Private Function ShowAwariePageOnMultiPage() As Boolean
+    Dim mp As MSForms.MultiPage
+    Set mp = GetMultiPageIfExists("MultiPage1")
+    If mp Is Nothing Then Exit Function
+
+    Dim pageIndex As Long
+    pageIndex = FindAwariePageIndex(mp)
+
+    If pageIndex >= 0 Then
+        mp.Value = pageIndex
+        ShowAwariePageOnMultiPage = True
+    End If
+End Function
+
+' Attempts to find the awarie/postój page by caption or name; falls back to page 1.
+Private Function FindAwariePageIndex(ByVal mp As MSForms.MultiPage) As Long
+    Dim idx As Long
+    Dim captionText As String
+
+    FindAwariePageIndex = -1
+
+    For idx = 0 To mp.Pages.Count - 1
+        captionText = LCase$(mp.Pages(idx).Caption & " " & mp.Pages(idx).Name)
+        If InStr(captionText, "awari") > 0 Or InStr(captionText, "post") > 0 Then
+            FindAwariePageIndex = idx
+            Exit Function
+        End If
+    Next idx
+
+    If mp.Pages.Count > 1 Then FindAwariePageIndex = 1
+End Function
+
+Private Function GetMultiPageIfExists(ByVal controlName As String) As MSForms.MultiPage
+    On Error Resume Next
+    Dim ctrl As Object
+    Set ctrl = Me.Controls(controlName)
+    If Err.Number <> 0 Then
+        Err.Clear
+        Exit Function
+    End If
+
+    If TypeOf ctrl Is MSForms.MultiPage Then
+        Set GetMultiPageIfExists = ctrl
+    End If
+End Function
 
 ' Saves all form entries into the "data" sheet. Columns B, C, and D are cleared on
 ' each save and used for shifts 1, 2, and 3 respectively; column I is cleared and
