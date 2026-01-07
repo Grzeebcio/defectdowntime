@@ -922,6 +922,14 @@ Private Function TryShowForm(ByVal formName As String, Optional ByRef openedForm
     On Error Resume Next
     Application.Run formName & ".Show", vbModeless
     If Err.Number = 0 Then
+        ' Attempt to capture the instance that was shown via Application.Run.
+        For Each loaded In VBA.UserForms
+            If StrComp(loaded.Name, formName, vbTextCompare) = 0 Then
+                Set openedForm = loaded
+                Exit For
+            End If
+        Next loaded
+
         TryShowForm = True
     Else
         TryShowForm = False
